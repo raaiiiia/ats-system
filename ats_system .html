@@ -1,0 +1,2205 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ATS Recruitment System</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.4.3/echarts.min.js"></script>
+<style>
+:root{
+  --bg:#0f172a;--bg2:#1e293b;--bg3:#334155;
+  --accent:#6366f1;--accent2:#818cf8;--accent3:#a5b4fc;
+  --green:#10b981;--yellow:#f59e0b;--red:#ef4444;--blue:#3b82f6;
+  --text:#f1f5f9;--text2:#94a3b8;--text3:#cbd5e1;
+  --border:#334155;--card:#1e293b;--radius:12px;
+  --s:#0ea5e9;--a:#6366f1;--b:#f59e0b;--c:#f97316;--d:#ef4444;
+}
+/* PIPELINE / KANBAN */
+.kanban-board{display:flex;gap:12px;overflow-x:auto;padding-bottom:8px;min-height:500px}
+.kanban-col{min-width:190px;max-width:210px;background:var(--bg2);border:1px solid var(--border);border-radius:10px;display:flex;flex-direction:column;flex-shrink:0}
+.kanban-col-header{padding:10px 12px;font-size:12px;font-weight:700;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;border-radius:10px 10px 0 0}
+.kanban-col-header .col-count{background:var(--bg3);padding:1px 7px;border-radius:10px;font-size:11px;font-weight:600}
+.kanban-body{flex:1;padding:8px;overflow-y:auto;min-height:80px}
+.kanban-body.drag-over{background:rgba(99,102,241,.1);border:1px dashed var(--accent)}
+.k-card{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:9px 10px;margin-bottom:7px;cursor:grab;user-select:none;transition:all .15s;font-size:12px}
+.k-card:hover{border-color:var(--accent);transform:translateY(-1px);box-shadow:0 4px 12px rgba(0,0,0,.2)}
+.k-card.dragging{opacity:.4}
+.k-card-name{font-weight:700;color:var(--text);margin-bottom:3px}
+.k-card-role{color:var(--text2);font-size:10px}
+.k-card-score{color:var(--accent2);font-size:10px;font-weight:600}
+.add-round-btn{margin:8px;padding:6px;border-radius:6px;border:1px dashed var(--border);background:transparent;color:var(--text2);font-size:11px;cursor:pointer;width:calc(100% - 16px);text-align:center}
+.add-round-btn:hover{border-color:var(--accent);color:var(--accent)}
+/* INTERVIEW */
+.session-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px;margin-bottom:20px}
+.session-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px;cursor:pointer;transition:all .2s}
+.session-card:hover{border-color:var(--accent)}
+.session-card.active{border-color:var(--accent);background:rgba(99,102,241,.08)}
+.session-title{font-weight:700;font-size:13px;margin-bottom:4px}
+.session-meta{font-size:11px;color:var(--text2);line-height:1.7}
+.session-cands{display:flex;flex-wrap:wrap;gap:4px;margin-top:8px}
+.session-cands .sc-tag{font-size:10px;padding:2px 7px;border-radius:10px;background:rgba(99,102,241,.15);color:var(--accent2);display:flex;align-items:center;gap:4px}
+.session-cands .sc-tag .rm{cursor:pointer;color:var(--text2);font-size:10px}
+.session-cands .sc-tag .rm:hover{color:var(--red)}
+.interview-layout{display:grid;grid-template-columns:220px 1fr;gap:14px}
+.interview-layout.with-resume{grid-template-columns:200px 1fr 280px}
+.cand-list-item{padding:9px 12px;border-radius:8px;cursor:pointer;font-size:12px;border:1px solid transparent;margin-bottom:4px}
+.cand-list-item:hover{background:var(--bg3)}
+.cand-list-item.active{background:rgba(99,102,241,.15);border-color:var(--accent);color:var(--accent2)}
+.score-slider{width:100%;accent-color:var(--accent);cursor:pointer}
+.eval-row{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.eval-label{min-width:110px;font-size:12px;color:var(--text2)}
+.eval-val{min-width:24px;font-size:12px;font-weight:700;color:var(--accent2);text-align:right}
+.overall-score{background:linear-gradient(135deg,rgba(99,102,241,.2),rgba(59,130,246,.1));border:1px solid var(--accent);border-radius:10px;padding:12px;text-align:center;margin:10px 0}
+.overall-num{font-size:28px;font-weight:800;color:var(--accent2)}
+/* TIMELINE */
+.timeline{padding:10px 0;position:relative}
+.timeline::before{content:'';position:absolute;left:14px;top:0;bottom:0;width:2px;background:var(--border)}
+.tl-item{display:flex;gap:12px;margin-bottom:14px;position:relative}
+.tl-dot{width:12px;height:12px;border-radius:50%;flex-shrink:0;margin-top:3px;border:2px solid var(--bg2);z-index:1}
+.tl-dot.pass{background:var(--green)}
+.tl-dot.reject{background:var(--red)}
+.tl-dot.hold{background:var(--yellow)}
+.tl-dot.pending{background:var(--text2)}
+.tl-content{flex:1}
+.tl-stage{font-weight:700;font-size:12px}
+.tl-date{font-size:10px;color:var(--text2)}
+/* DRAG POOL */
+.drag-pool{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:8px;min-height:60px;max-height:160px;overflow-y:auto}
+.drag-pool.drag-over{background:rgba(99,102,241,.08);border-color:var(--accent)}
+.pool-item{padding:5px 8px;background:var(--bg3);border-radius:6px;margin-bottom:4px;font-size:11px;cursor:grab;display:flex;justify-content:space-between;align-items:center;border:1px solid var(--border)}
+.pool-item:hover{border-color:var(--accent)}
+.light{
+  --bg:#f1f5f9;--bg2:#ffffff;--bg3:#e2e8f0;
+  --accent:#6366f1;--accent2:#4f46e5;--accent3:#4338ca;
+  --text:#0f172a;--text2:#475569;--text3:#334155;
+  --border:#cbd5e1;--card:#ffffff;
+}
+*{box-sizing:border-box;margin:0;padding:0;transition:background .2s,color .2s}
+body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--text);display:flex;height:100vh;overflow:hidden}
+/* SIDEBAR */
+#sidebar{width:220px;min-width:220px;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;padding:0;z-index:10}
+.logo{padding:20px 16px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px}
+.logo-icon{width:34px;height:34px;background:linear-gradient(135deg,var(--accent),var(--blue));border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px}
+.logo-text{font-weight:700;font-size:15px;letter-spacing:.3px}
+.logo-sub{font-size:10px;color:var(--text2)}
+nav{flex:1;padding:12px 8px;overflow-y:auto}
+.nav-section{font-size:10px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:1px;padding:8px 8px 4px}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:8px;cursor:pointer;font-size:13px;color:var(--text2);margin-bottom:2px;user-select:none}
+.nav-item:hover{background:var(--bg3);color:var(--text)}
+.nav-item.active{background:linear-gradient(135deg,rgba(99,102,241,.25),rgba(59,130,246,.15));color:var(--accent2);font-weight:600}
+.nav-item .icon{font-size:16px;width:20px;text-align:center}
+.sidebar-footer{padding:12px 8px;border-top:1px solid var(--border)}
+.theme-btn{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:8px;cursor:pointer;font-size:12px;color:var(--text2);background:var(--bg3);border:none;width:100%;justify-content:center}
+.theme-btn:hover{color:var(--text)}
+/* MAIN */
+#main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+#topbar{height:52px;background:var(--bg2);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 20px;gap:12px;flex-shrink:0}
+.topbar-title{font-weight:700;font-size:16px;flex:1}
+.badge{padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600}
+.badge-blue{background:rgba(59,130,246,.15);color:var(--blue)}
+.badge-green{background:rgba(16,185,129,.15);color:var(--green)}
+.badge-yellow{background:rgba(245,158,11,.15);color:var(--yellow)}
+.upload-btn{display:flex;align-items:center;gap:6px;padding:7px 14px;border-radius:8px;background:var(--accent);color:#fff;font-size:12px;font-weight:600;cursor:pointer;border:none}
+.upload-btn:hover{background:var(--accent2)}
+#content{flex:1;overflow-y:auto;padding:20px}
+/* CARDS */
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:16px}
+.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:16px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:18px}
+.card-title{font-size:12px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.6px;margin-bottom:14px;display:flex;align-items:center;gap:6px}
+.stat-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:16px;position:relative;overflow:hidden}
+.stat-card::before{content:'';position:absolute;top:0;right:0;width:60px;height:60px;border-radius:50%;opacity:.08;transform:translate(20px,-20px)}
+.stat-card.blue::before{background:var(--blue)}
+.stat-card.green::before{background:var(--green)}
+.stat-card.yellow::before{background:var(--yellow)}
+.stat-card.purple::before{background:var(--accent)}
+.stat-num{font-size:26px;font-weight:800;margin:6px 0 2px}
+.stat-label{font-size:11px;color:var(--text2)}
+.stat-change{font-size:11px;font-weight:600;margin-top:4px}
+.stat-change.up{color:var(--green)}
+.stat-change.down{color:var(--red)}
+/* CHARTS */
+.chart-wrap{position:relative;width:100%;height:260px}
+.chart-wrap canvas{width:100%!important}
+/* TABLE */
+.tbl-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{background:var(--bg3);color:var(--text2);font-weight:600;text-transform:uppercase;letter-spacing:.5px;padding:9px 12px;text-align:left;position:sticky;top:0;z-index:1}
+td{padding:9px 12px;border-bottom:1px solid var(--border);color:var(--text3)}
+tr:hover td{background:var(--bg3)}
+.level-badge{padding:2px 8px;border-radius:12px;font-size:10px;font-weight:700}
+.lvl-s{background:rgba(14,165,233,.2);color:var(--s)}
+.lvl-a{background:rgba(99,102,241,.2);color:var(--a)}
+.lvl-b{background:rgba(245,158,11,.2);color:var(--b)}
+.lvl-c{background:rgba(249,115,22,.2);color:var(--c)}
+.lvl-d{background:rgba(239,68,68,.2);color:var(--d)}
+.score-bar{height:6px;border-radius:3px;background:var(--bg3);position:relative;overflow:hidden;width:80px;display:inline-block;vertical-align:middle;margin-left:6px}
+.score-fill{height:100%;border-radius:3px;background:linear-gradient(90deg,var(--accent),var(--blue))}
+/* SEARCH/FILTER */
+.controls{display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap;align-items:center}
+.search-input{flex:1;min-width:180px;padding:8px 12px;border-radius:8px;border:1px solid var(--border);background:var(--bg2);color:var(--text);font-size:13px;outline:none}
+.search-input:focus{border-color:var(--accent)}
+select.filter-sel{padding:7px 10px;border-radius:8px;border:1px solid var(--border);background:var(--bg2);color:var(--text);font-size:12px;outline:none;cursor:pointer}
+.export-btn{padding:7px 14px;border-radius:8px;border:1px solid var(--border);background:var(--bg3);color:var(--text);font-size:12px;cursor:pointer;font-weight:600}
+.export-btn:hover{background:var(--accent);color:#fff;border-color:var(--accent)}
+/* PAGINATION */
+.pagination{display:flex;align-items:center;gap:6px;margin-top:12px;justify-content:flex-end}
+.page-btn{padding:5px 10px;border-radius:6px;border:1px solid var(--border);background:var(--bg2);color:var(--text2);font-size:12px;cursor:pointer}
+.page-btn.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+.page-btn:hover:not(.active){background:var(--bg3)}
+/* FLOW DIAGRAM */
+.flow-container{display:flex;flex-direction:column;align-items:center;gap:0;padding:10px}
+.flow-node{background:linear-gradient(135deg,var(--bg3),var(--bg2));border:1px solid var(--border);border-radius:10px;padding:12px 24px;min-width:220px;text-align:center;cursor:pointer;position:relative;transition:all .2s}
+.flow-node:hover,.flow-node.active{border-color:var(--accent);background:linear-gradient(135deg,rgba(99,102,241,.2),rgba(59,130,246,.1));transform:scale(1.02)}
+.flow-node .fn-title{font-weight:700;font-size:13px;color:var(--text)}
+.flow-node .fn-sub{font-size:11px;color:var(--text2);margin-top:3px}
+.flow-arrow{font-size:20px;color:var(--accent2);line-height:1;padding:4px 0}
+.flow-detail{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:14px;margin:6px 0;max-width:400px;width:100%;font-size:12px;color:var(--text2);display:none}
+.flow-detail.show{display:block}
+.flow-detail ul{padding-left:16px;margin-top:6px}
+.flow-detail li{margin-bottom:3px}
+/* CLEANING LOG */
+.log-item{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px}
+.log-item:last-child{border-bottom:none}
+.log-key{color:var(--text2)}
+.log-val{font-weight:700;color:var(--text)}
+.log-val.green{color:var(--green)}
+.log-val.red{color:var(--red)}
+.progress-bar{height:8px;border-radius:4px;background:var(--bg3);overflow:hidden;margin-top:4px}
+.progress-fill{height:100%;border-radius:4px}
+/* UPLOAD ZONE */
+#uploadZone{border:2px dashed var(--border);border-radius:var(--radius);padding:40px;text-align:center;cursor:pointer;transition:all .2s;margin-bottom:20px}
+#uploadZone:hover,#uploadZone.drag{border-color:var(--accent);background:rgba(99,102,241,.05)}
+#uploadZone .uz-icon{font-size:40px;margin-bottom:12px}
+#uploadZone .uz-text{font-size:15px;font-weight:600;color:var(--text2)}
+#uploadZone .uz-sub{font-size:12px;color:var(--text2);margin-top:6px}
+/* TABS (inner) */
+.inner-tabs{display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap}
+.inner-tab{padding:6px 14px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;border:1px solid var(--border);color:var(--text2);background:var(--bg2)}
+.inner-tab.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+/* SKILLS */
+.skill-tag{display:inline-block;padding:3px 8px;border-radius:12px;font-size:11px;background:rgba(99,102,241,.15);color:var(--accent2);margin:2px}
+/* WORDCLOUD fallback */
+.skill-cloud{display:flex;flex-wrap:wrap;gap:6px;padding:10px;align-items:center;justify-content:center}
+.skill-cloud span{border-radius:20px;padding:4px 12px;background:rgba(99,102,241,.12);color:var(--accent2);cursor:default;font-weight:600}
+.resume-btn{padding:5px 10px;border-radius:7px;border:none;cursor:pointer;background:var(--accent);color:#fff;font-size:11px;font-weight:600;transition:all .15s}
+.resume-btn:hover{opacity:.85;transform:scale(1.05)}
+/* MODAL */
+.modal{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.65);display:none;justify-content:center;align-items:center;z-index:9999}
+.modal-content{width:70%;max-width:780px;max-height:82vh;overflow-y:auto;background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:24px;box-shadow:0 24px 60px rgba(0,0,0,.5)}
+.modal-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid var(--border)}
+.modal-header h3{font-size:15px;font-weight:700}
+.modal-close{background:var(--bg3);border:none;color:var(--text2);width:28px;height:28px;border-radius:6px;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center}
+.modal-close:hover{color:var(--text);background:var(--border)}
+.tooltip{position:fixed;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:10px 14px;font-size:12px;pointer-events:none;z-index:999;max-width:260px;box-shadow:0 8px 24px rgba(0,0,0,.3);display:none}
+/* LOADING */
+#loading{position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:999;gap:16px}
+.spinner{width:44px;height:44px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.load-text{font-size:14px;color:var(--text2)}
+/* SCROLLBAR */
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--bg3);border-radius:3px}
+/* SECTION hide/show */
+.page{display:none}
+.page.active{display:block}
+/* FUNNEL */
+.funnel{display:flex;flex-direction:column;align-items:center;gap:0;padding:10px 0}
+.funnel-step{background:linear-gradient(135deg,var(--accent),var(--blue));border-radius:6px;padding:10px 20px;color:#fff;font-size:13px;font-weight:600;margin:3px;text-align:center;transition:all .2s}
+.funnel-step:hover{transform:scaleX(1.02)}
+/* HEATMAP */
+#heatmapWrap{overflow-x:auto}
+/* RESPONSIVE */
+@media(max-width:768px){
+  #sidebar{width:52px;min-width:52px}
+  .nav-item span:not(.icon){display:none}
+  .logo-text,.logo-sub{display:none}
+  .nav-section{display:none}
+  .grid4,.grid3,.grid2{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<div id="loading">
+  <div class="spinner"></div>
+  <div class="load-text" id="loadMsg">Initializing ATS System...</div>
+</div>
+
+<div id="tooltip" class="tooltip"></div>
+
+<!-- SIDEBAR -->
+<div id="sidebar">
+  <div class="logo">
+    <div class="logo-icon">🎯</div>
+    <div>
+      <div class="logo-text">ATS Pro</div>
+      <div class="logo-sub">Recruitment Hub</div>
+    </div>
+  </div>
+  <nav>
+    <div class="nav-item active" onclick="showPage('dashboard')">
+      <span class="icon">🏠</span><span>Dashboard</span>
+    </div>
+    <div class="nav-item" onclick="showPage('candidates')">
+      <span class="icon">👥</span><span>Candidates</span>
+    </div>
+    <div class="nav-item" onclick="showPage('pipeline')">
+      <span class="icon">📋</span><span>Pipeline</span>
+    </div>
+    <div class="nav-item" onclick="showPage('interview')">
+      <span class="icon">🎤</span><span>Interview</span>
+    </div>
+    <div class="nav-item" onclick="showPage('settings')">
+      <span class="icon">⚙️</span><span>Settings</span>
+    </div>
+  </nav>
+  <div class="sidebar-footer">
+    <button class="theme-btn" onclick="toggleTheme()">
+      <span id="themeIcon">🌙</span><span id="themeLabel">Dark Mode</span>
+    </button>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div id="main">
+  <div id="topbar">
+    <div class="topbar-title" id="topbarTitle">📊 Dashboard</div>
+    <div id="statusBadge" class="badge badge-yellow">No Data Loaded</div>
+    <label class="upload-btn" for="csvFile">
+      📂 Load CSV
+      <input type="file" id="csvFile" accept=".csv" style="display:none" onchange="handleFileUpload(this)">
+    </label>
+    <button class="upload-btn" onclick="loadSampleData()" style="background:var(--green)">✨ Sample Data</button>
+  </div>
+
+  <div id="content">
+
+    <!-- DASHBOARD PAGE -->
+    <div id="page-dashboard" class="page active">
+      <div class="grid4">
+        <div class="stat-card blue">
+          <div class="stat-label">📋 Total Candidates</div>
+          <div class="stat-num" id="s-total">—</div>
+          <div class="stat-change up" id="s-roles">0 Roles</div>
+        </div>
+        <div class="stat-card green">
+          <div class="stat-label">✅ Accepted</div>
+          <div class="stat-num" id="s-accept">—</div>
+          <div class="stat-change up" id="s-accept-pct">—</div>
+        </div>
+        <div class="stat-card yellow">
+          <div class="stat-label">⭐ Avg Fit Score</div>
+          <div class="stat-num" id="s-avg">—</div>
+          <div class="stat-change up">Out of 100</div>
+        </div>
+        <div class="stat-card purple">
+          <div class="stat-label">🏆 S-Level Count</div>
+          <div class="stat-num" id="s-slevel">—</div>
+          <div class="stat-change up">Top Candidates</div>
+        </div>
+      </div>
+
+      <div class="inner-tabs">
+        <div class="inner-tab active" onclick="switchDashTab('overview')">Overview</div>
+        <div class="inner-tab" onclick="switchDashTab('skills')">Skills Analysis</div>
+        <div class="inner-tab" onclick="switchDashTab('heatmap')">Role Heatmap</div>
+        <div class="inner-tab" onclick="switchDashTab('history')">Decision History</div>
+      </div>
+
+      <!-- Overview Tab -->
+      <div id="dash-overview">
+        <div class="grid2">
+          <div class="card">
+            <div class="card-title">📉 Recruitment Funnel</div>
+            <div id="funnelChart" style="height:280px"></div>
+          </div>
+          <div class="card">
+            <div class="card-title">🏅 Candidate Level Distribution</div>
+            <div class="chart-wrap"><canvas id="levelChart"></canvas></div>
+          </div>
+        </div>
+        <div class="grid2">
+          <div class="card">
+            <div class="card-title">📈 Fit Score Distribution</div>
+            <div class="chart-wrap"><canvas id="histChart"></canvas></div>
+          </div>
+          <div class="card">
+            <div class="card-title">🏆 Top 10 Candidates</div>
+            <div id="top10Chart" style="height:280px"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Skills Tab -->
+      <div id="dash-skills" style="display:none">
+        <div class="grid2">
+          <div class="card">
+            <div class="card-title">☁️ Skill Word Cloud</div>
+            <div id="skillCloud" class="skill-cloud" style="min-height:240px"></div>
+          </div>
+          <div class="card">
+            <div class="card-title">🔗 Skill Co-occurrence Network</div>
+            <div id="networkChart" style="height:280px"></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">📊 Top Skills Frequency</div>
+          <div style="height:220px"><canvas id="skillBarChart"></canvas></div>
+        </div>
+      </div>
+
+      <!-- Heatmap Tab -->
+      <div id="dash-heatmap" style="display:none">
+        <div class="card">
+          <div class="card-title">🗺️ Role × Skill Heatmap</div>
+          <div id="heatmapWrap"><div id="heatmapChart" style="height:360px;min-width:600px"></div></div>
+        </div>
+      </div>
+
+      <!-- History Tab -->
+      <div id="dash-history" style="display:none">
+        <div class="grid2">
+          <div class="card">
+            <div class="card-title">🥧 Accept / Reject Distribution</div>
+            <div class="chart-wrap"><canvas id="decisionChart"></canvas></div>
+          </div>
+          <div class="card">
+            <div class="card-title">📋 Decision by Role</div>
+            <div class="chart-wrap"><canvas id="roleDecisionChart"></canvas></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CANDIDATES PAGE -->
+    <div id="page-candidates" class="page">
+      <div class="controls">
+        <input class="search-input" type="text" id="candSearch" placeholder="🔍 Search by name, role, skills..."   oninput="debouncedFilter()">
+        <select class="filter-sel" id="levelFilter" onchange="debouncedFilter()">
+          <option value="">All Levels</option>
+          <option value="S">S Level</option>
+          <option value="A">A Level</option>
+          <option value="B">B Level</option>
+          <option value="C">C Level</option>
+          <option value="D">D Level</option>
+        </select>
+        <select class="filter-sel" id="roleFilter" onchange="debouncedFilter()">
+          <option value="">All Roles</option>
+        </select>
+        <select class="filter-sel" id="decisionFilter" onchange="debouncedFilter()">
+          <option value="">All Statuses</option>
+          <option value="Pending">Pending</option>
+          <option value="Pass">Pass</option>
+          <option value="Hold">Hold</option>
+          <option value="Offer">Offer</option>
+          <option value="Reject">Reject</option>
+          <option value="Withdrawn">Withdrawn</option>
+        </select>
+        <button class="export-btn" onclick="exportCSV()">⬇️ Export CSV</button>
+      </div>
+      <div class="card">
+        <div class="tbl-wrap">
+          <table id="candTable">
+            <thead>
+              <tr>
+                <th onclick="sortBy('rank')" style="cursor:pointer"># Rank ↕</th>
+                <th onclick="sortBy('name')" style="cursor:pointer">Candidate ↕</th>
+                <th onclick="sortBy('role')" style="cursor:pointer">Role ↕</th>
+                <th>Skills</th>
+                <th>Contact</th>
+                <th onclick="sortBy('exp')" style="cursor:pointer">Exp ↕</th>
+                <th onclick="sortBy('edu')" style="cursor:pointer">Education ↕</th>
+                <th onclick="sortBy('fitScore')" style="cursor:pointer">Fit Score ↕</th>
+                <th>Level</th>
+                <th>Current Stage</th>
+                <th>Status</th>
+                <th>Recommendation</th>
+                <th>Resume</th>
+              </tr>
+            </thead>
+            <tbody id="candBody"></tbody>
+          </table>
+        </div>
+        <div class="pagination" id="pagination"></div>
+      </div>
+    </div>
+
+    <!-- LOGIC PAGE -->
+    <div id="page-logic" class="page">
+      <div class="card" style="margin-bottom:16px">
+        <div class="card-title">🔀 Recruitment Pipeline — Click Nodes for Details</div>
+        <div class="flow-container" id="flowDiagram"></div>
+      </div>
+      <div class="grid2">
+        <div class="card">
+          <div class="card-title">⚖️ FitScore Formula</div>
+          <div style="background:var(--bg3);border-radius:8px;padding:16px;font-family:monospace;font-size:13px;line-height:1.8;color:var(--accent2)">
+            FitScore = <br>
+            &nbsp;&nbsp;<span style="color:var(--green)">0.4</span> × SkillScore&nbsp;&nbsp;&nbsp;&nbsp;(Skill Match %)<br>
+            &nbsp;+ <span style="color:var(--blue)">0.3</span> × ExperienceScore (Exp Ratio)<br>
+            &nbsp;+ <span style="color:var(--yellow)">0.1</span> × EducationScore &nbsp;(Edu Level)<br>
+            &nbsp;+ <span style="color:var(--accent2)">0.2</span> × SemanticScore &nbsp;(TF-IDF Cosine)<br>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">🏅 Grading System</div>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <div style="display:flex;align-items:center;gap:10px">
+              <span class="level-badge lvl-s" style="font-size:13px;padding:4px 12px">S</span>
+              <div style="flex:1"><div class="progress-bar"><div class="progress-fill" style="background:var(--s);width:100%"></div></div></div>
+              <span style="font-size:12px;color:var(--text2)">90–100 · Core Candidate</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px">
+              <span class="level-badge lvl-a" style="font-size:13px;padding:4px 12px">A</span>
+              <div style="flex:1"><div class="progress-bar"><div class="progress-fill" style="background:var(--a);width:89%"></div></div></div>
+              <span style="font-size:12px;color:var(--text2)">80–89 · Priority Interview</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px">
+              <span class="level-badge lvl-b" style="font-size:13px;padding:4px 12px">B</span>
+              <div style="flex:1"><div class="progress-bar"><div class="progress-fill" style="background:var(--b);width:79%"></div></div></div>
+              <span style="font-size:12px;color:var(--text2)">70–79 · Reserve Pool</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px">
+              <span class="level-badge lvl-c" style="font-size:13px;padding:4px 12px">C</span>
+              <div style="flex:1"><div class="progress-bar"><div class="progress-fill" style="background:var(--c);width:65%"></div></div></div>
+              <span style="font-size:12px;color:var(--text2)">60–69 · On Hold</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px">
+              <span class="level-badge lvl-d" style="font-size:13px;padding:4px 12px">D</span>
+              <div style="flex:1"><div class="progress-bar"><div class="progress-fill" style="background:var(--d);width:40%"></div></div></div>
+              <span style="font-size:12px;color:var(--text2)">&lt;60 · Rejected</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CLEANING PAGE -->
+    <div id="page-cleaning" class="page">
+      <div id="uploadZone" onclick="document.getElementById('csvFile2').click()"
+        ondragover="event.preventDefault();this.classList.add('drag')"
+        ondrop="handleDrop(event)">
+        <input type="file" id="csvFile2" accept=".csv" style="display:none" onchange="handleFileUpload(this)">
+        <div class="uz-icon">📂</div>
+        <div class="uz-text">Drop CSV here or click to upload</div>
+        <div class="uz-sub">resume_dataset.csv · Supports 10,000+ records</div>
+      </div>
+      <div class="grid2">
+        <div class="card">
+          <div class="card-title">🧹 Cleaning Summary</div>
+          <div id="cleanLog">
+            <div style="color:var(--text2);font-size:13px;text-align:center;padding:20px">No data loaded yet</div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">📝 Text Normalization Preview</div>
+          <div id="cleanPreview">
+            <div style="color:var(--text2);font-size:13px;text-align:center;padding:20px">Load data to see preview</div>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">🧬 Extracted Candidate Features</div>
+        <div class="tbl-wrap">
+          <table id="featTable">
+            <thead><tr>
+              <th>Candidate</th><th>Role</th>
+              <th>Skills Detected</th><th>Experience (Yrs)</th><th>Education</th>
+              <th>Skill Score</th><th>Exp Score</th><th>Edu Score</th><th>Semantic Score</th>
+            </tr></thead>
+            <tbody id="featBody"></tbody>
+          </table>
+        </div>
+        <div class="pagination" id="featPagination"></div>
+      </div>
+    </div>
+
+    <!-- PIPELINE PAGE -->
+    <div id="page-pipeline" class="page">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap">
+        <div style="font-size:13px;color:var(--text2)">Drag cards between columns to advance candidates through the pipeline.</div>
+        <button class="upload-btn" onclick="addKanbanRound()" style="margin-left:auto;background:var(--bg3);color:var(--text);border:1px solid var(--border)">＋ Add Round</button>
+        <button class="upload-btn" onclick="saveToStorage()" style="background:var(--green)">💾 Save</button>
+      </div>
+      <div class="kanban-board" id="kanbanBoard"></div>
+    </div>
+
+    <!-- INTERVIEW PAGE -->
+    <div id="page-interview" class="page">
+      <div class="inner-tabs" style="margin-bottom:14px">
+        <div class="inner-tab active" onclick="switchInterviewTab('schedule')">📅 Schedule</div>
+        <div class="inner-tab" onclick="switchInterviewTab('eval')">📝 Evaluation</div>
+        <div class="inner-tab" onclick="switchInterviewTab('stats')">📊 Stats</div>
+      </div>
+
+      <!-- Schedule -->
+      <div id="itab-schedule">
+        <div style="display:flex;gap:10px;align-items:center;margin-bottom:14px">
+          <div style="font-weight:700;font-size:14px">Interview Sessions</div>
+          <button class="upload-btn" onclick="openSessionModal()" style="margin-left:auto">＋ Add Session</button>
+        </div>
+        <div class="session-grid" id="sessionGrid"></div>
+        <div class="grid2">
+          <div class="card">
+            <div class="card-title">👥 Candidate Pool (drag to session)</div>
+            <input class="search-input" id="poolSearch" placeholder="Search candidates..." oninput="renderPool()" style="margin-bottom:8px;font-size:12px">
+            <div class="drag-pool" id="candPool"
+              ondragover="event.preventDefault();this.classList.add('drag-over')"
+              ondrop="dropToPool(event)" ondragleave="this.classList.remove('drag-over')"></div>
+          </div>
+          <div class="card" id="sessionDetailCard" style="display:none">
+            <div class="card-title" id="sessionDetailTitle">Session Detail</div>
+            <div id="sessionCandList"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Evaluation -->
+      <div id="itab-eval" style="display:none">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;flex-wrap:wrap">
+          <select class="filter-sel" id="evalSessionSel" onchange="renderEvalPanel()">
+            <option value="">— Select Session —</option>
+          </select>
+          <label style="font-size:12px;display:flex;align-items:center;gap:6px;cursor:pointer;color:var(--text2)">
+            <input type="checkbox" id="showResumeCk" onchange="toggleResumePanel()"> Show Resume
+          </label>
+        </div>
+        <div class="interview-layout" id="interviewLayout">
+          <div class="card" style="padding:10px">
+            <div class="card-title">Candidates</div>
+            <div id="evalCandList"></div>
+          </div>
+          <div class="card" id="evalFormCard" style="padding:14px">
+            <div style="color:var(--text2);font-size:13px;text-align:center;padding:30px">Select a candidate</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Stats -->
+      <div id="itab-stats" style="display:none">
+        <div class="grid4">
+          <div class="stat-card blue"><div class="stat-label">📋 Pipeline: Resume</div><div class="stat-num" id="ps-resume">—</div></div>
+          <div class="stat-card purple"><div class="stat-label">🎤 In Interviews</div><div class="stat-num" id="ps-interview">—</div></div>
+          <div class="stat-card green"><div class="stat-label">🎉 Offer Stage</div><div class="stat-num" id="ps-offer">—</div></div>
+          <div class="stat-card" style="border-color:var(--red)"><div class="stat-label">❌ Rejected</div><div class="stat-num" id="ps-reject">—</div></div>
+        </div>
+        <div class="grid2">
+          <div class="card"><div class="card-title">📊 Pipeline Stage Distribution</div><div class="chart-wrap"><canvas id="pipelineBarChart"></canvas></div></div>
+          <div class="card"><div class="card-title">⭐ Avg Interview Score by Dimension</div><div class="chart-wrap"><canvas id="interviewRadarChart"></canvas></div></div>
+        </div>
+        <div class="grid2">
+          <div class="card"><div class="card-title">✅ Interview Pass Rate</div><div class="chart-wrap"><canvas id="passRateChart"></canvas></div></div>
+          <div class="card"><div class="card-title">📅 Upcoming Sessions</div><div id="upcomingSessions" style="font-size:12px;line-height:2"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SESSION MODAL -->
+    <div id="sessionModal" class="modal">
+      <div class="modal-content" style="width:440px;max-width:95vw">
+        <div class="modal-header"><h3>📅 New Interview Session</h3><button class="modal-close" onclick="closeSessionModal()">✖</button></div>
+        <div style="display:flex;flex-direction:column;gap:10px;font-size:13px">
+          <div><label style="color:var(--text2)">Session Name</label><input id="sm-name" class="search-input" style="width:100%;margin-top:4px" placeholder="e.g. DS Round 1"></div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+            <div><label style="color:var(--text2)">Date</label><input id="sm-date" type="date" class="search-input" style="width:100%;margin-top:4px"></div>
+            <div><label style="color:var(--text2)">Time</label><input id="sm-time" type="time" class="search-input" style="width:100%;margin-top:4px"></div>
+          </div>
+          <div><label style="color:var(--text2)">Location / Link</label><input id="sm-loc" class="search-input" style="width:100%;margin-top:4px" placeholder="e.g. Zoom / Room 3B"></div>
+          <div><label style="color:var(--text2)">Interviewer(s)</label><input id="sm-iewer" class="search-input" style="width:100%;margin-top:4px" placeholder="e.g. Jane, Bob"></div>
+          <button class="upload-btn" onclick="saveSession()" style="margin-top:6px">✅ Save Session</button>
+        </div>
+      </div>
+    </div>
+    <div id="page-settings" class="page">
+      <div class="grid2">
+        <div class="card">
+          <div class="card-title">⚙️ Scoring Weights</div>
+          <div style="display:flex;flex-direction:column;gap:14px">
+            <div>
+              <label style="font-size:12px;color:var(--text2)">Skill Weight: <strong id="wSkill">40</strong>%</label>
+              <input type="range" min="0" max="100" value="40" id="wSkillRange" oninput="updateWeight('wSkill',this.value);debouncedRecalc()" style="width:100%;margin-top:4px;accent-color:var(--accent)">
+            </div>
+            <div>
+              <label style="font-size:12px;color:var(--text2)">Experience Weight: <strong id="wExp">30</strong>%</label>
+              <input type="range" min="0" max="100" value="30" id="wExpRange" oninput="updateWeight('wExp',this.value);debouncedRecalc()" style="width:100%;margin-top:4px;accent-color:var(--blue)">
+            </div>
+            <div>
+              <label style="font-size:12px;color:var(--text2)">Education Weight: <strong id="wEdu">10</strong>%</label>
+              <input type="range" min="0" max="100" value="10" id="wEduRange" oninput="updateWeight('wEdu',this.value);debouncedRecalc()" style="width:100%;margin-top:4px;accent-color:var(--green)">
+            </div>
+            <div>
+              <label style="font-size:12px;color:var(--text2)">Semantic Weight: <strong id="wSem">20</strong>%</label>
+              <input type="range" min="0" max="100" value="20" id="wSemRange" oninput="updateWeight('wSem',this.value);debouncedRecalc()" style="width:100%;margin-top:4px;accent-color:var(--yellow)">
+            </div>
+            <button class="upload-btn" onclick="recalcScores()" style="margin-top:8px">🔄 Recalculate Scores</button>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">🧰 Skill Dictionary</div>
+          <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px" id="skillDictDisplay"></div>
+          <textarea id="skillDictInput" style="width:100%;height:80px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:8px;font-size:12px;resize:none;outline:none" placeholder="Add skill (comma-separated)..."></textarea>
+          <button class="export-btn" onclick="addSkills()" style="margin-top:8px">➕ Add Skills</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">📊 Experience Requirements per Role</div>
+        <div id="roleExpConfig" style="display:flex;flex-wrap:wrap;gap:10px"></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- RESUME MODAL -->
+<div id="resumeModal" class="modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3>📄 Candidate Resume</h3>
+      <button class="modal-close" onclick="closeResumeModal()">✖</button>
+    </div>
+    <div id="resumeContent"></div>
+  </div>
+</div>
+
+<script>
+// ===================== LAZY OBSERVER =====================
+function lazyObserve(elId,renderFn){
+  const el=document.getElementById(elId);
+  if(!el)return;
+  el.innerHTML='<div style="color:var(--text2);font-size:12px;text-align:center;padding:20px">Loading…</div>';
+  const obs=new IntersectionObserver(entries=>{
+    if(entries[0].isIntersecting&&candidates.length){
+      renderFn();obs.disconnect();
+    }
+  },{threshold:0.1});
+  obs.observe(el);
+}
+
+// ===================== PIPELINE / KANBAN =====================
+let kanbanCols=['Resume','Interview 1','Offer','Rejected'];
+let interviewSessions=[];
+let activeSessionId=null;
+let activeEvalCandIdx=null;
+
+const STAGE_COLORS={'Resume':'#6366f1','Interview 1':'#3b82f6','Interview 2':'#0ea5e9','Interview 3':'#06b6d4','Offer':'#10b981','Rejected':'#ef4444'};
+function stageColor(s){return STAGE_COLORS[s]||'#6366f1';}
+
+function initPipeline(){
+  const saved=loadStorage('kanbanCols');
+  if(saved)kanbanCols=saved;
+  const savedS=loadStorage('interviewSessions');
+  if(savedS)interviewSessions=savedS;
+  candidates.forEach(c=>{
+    if(!c.pipeline){
+      c.pipeline={stage:kanbanCols[0],history:[{stage:kanbanCols[0],result:'Pass',time:Date.now()}]};
+    }
+    if(!c.interviewRecords)c.interviewRecords=[];
+  });
+  const savedP=loadStorage('candidatePipelines');
+  if(savedP){
+    savedP.forEach(sp=>{
+      const c=candidates.find(x=>x.idx===sp.idx);
+      if(c){c.pipeline=sp.pipeline;c.interviewRecords=sp.interviewRecords||[];}
+    });
+  }
+}
+
+function addKanbanRound(){
+  const n=kanbanCols.filter(c=>c.startsWith('Interview')).length+1;
+  const newCol=`Interview ${n}`;
+  const offerIdx=kanbanCols.indexOf('Offer');
+  if(offerIdx>-1)kanbanCols.splice(offerIdx,0,newCol);
+  else kanbanCols.push(newCol);
+  renderKanban();
+}
+
+function renderKanban(){
+  const board=document.getElementById('kanbanBoard');
+  if(!board)return;
+  board.innerHTML=kanbanCols.map(col=>{
+    const cards=candidates.filter(c=>c.pipeline&&c.pipeline.stage===col);
+    const color=stageColor(col);
+    return`<div class="kanban-col">
+      <div class="kanban-col-header" style="border-top:3px solid ${color}">
+        <span>${col}</span><span class="col-count">${cards.length}</span>
+      </div>
+      <div class="kanban-body" id="kb-${encodeCol(col)}"
+        ondragover="event.preventDefault();this.classList.add('drag-over')"
+        ondragleave="this.classList.remove('drag-over')"
+        ondrop="dropToCol(event,'${col}')">
+        ${cards.map(c=>`
+          <div class="k-card" draggable="true"
+            ondragstart="dragStartCard(event,${c.idx})"
+            ondragend="this.classList.remove('dragging')"
+            onclick="showCandTimeline(${c.idx})">
+            <div class="k-card-name">${esc(c.name)}</div>
+            <div class="k-card-role">${esc(c.role)}</div>
+            <div class="k-card-score">Score: ${c.fitScore.toFixed(1)} · <span class="level-badge lvl-${c.level.toLowerCase()}" style="font-size:9px">${c.level}</span></div>
+          </div>`).join('')}
+      </div>
+    </div>`;
+  }).join('')+`<div style="min-width:160px;display:flex;align-items:flex-start;padding-top:44px">
+    <button class="add-round-btn" onclick="addKanbanRound()">＋ Add Round</button></div>`;
+}
+
+function encodeCol(s){return s.replace(/\s+/g,'_');}
+let dragCardIdx=null;
+function dragStartCard(e,idx){dragCardIdx=idx;e.currentTarget.classList.add('dragging');}
+function dropToCol(e,col){
+  e.preventDefault();
+  document.querySelectorAll('.kanban-body').forEach(b=>b.classList.remove('drag-over'));
+  if(dragCardIdx===null)return;
+  const c=candidates.find(x=>x.idx===dragCardIdx);
+  if(!c)return;
+  const prev=c.pipeline.stage;
+  if(prev===col)return;
+  const result=col==='Rejected'?'Reject':col==='Offer'?'Offer':'Pass';
+  c.pipeline.stage=col;
+  c.pipeline.history.push({stage:col,result,time:Date.now()});
+  dragCardIdx=null;
+  renderKanban();
+  updatePipelineStats();
+}
+
+// Timeline modal reuse
+function showCandTimeline(idx){
+  const c=candidates.find(x=>x.idx===idx);
+  if(!c)return;
+  const fmt=ts=>new Date(ts).toLocaleDateString();
+  const dotClass=r=>r==='Pass'||r==='Offer'?'pass':r==='Reject'?'reject':r==='Hold'?'hold':'pending';
+  document.getElementById('resumeContent').innerHTML=
+    `<div style="font-weight:700;font-size:14px;color:var(--accent2);border-bottom:1px solid var(--border);padding-bottom:8px;margin-bottom:12px">🗓 Recruitment Timeline — ${esc(c.name)}</div>
+    <div class="timeline">
+      ${(c.pipeline.history||[]).map(h=>`
+        <div class="tl-item">
+          <div class="tl-dot ${dotClass(h.result)}"></div>
+          <div class="tl-content">
+            <div class="tl-stage">${esc(h.stage)} <span style="font-size:10px;font-weight:400;color:${h.result==='Pass'||h.result==='Offer'?'var(--green)':h.result==='Reject'?'var(--red)':'var(--yellow)'}">${h.result}</span></div>
+            <div class="tl-date">${fmt(h.time)}</div>
+          </div>
+        </div>`).join('')}
+    </div>
+    <div style="margin-top:12px;padding-top:10px;border-top:1px solid var(--border)">
+      <div class="card-title">📊 Interview Scores</div>
+      ${c.interviewRecords&&c.interviewRecords.length?
+        c.interviewRecords.map(r=>`<div style="background:var(--bg3);border-radius:8px;padding:10px;margin-bottom:8px;font-size:12px">
+          <strong>Round ${r.round}</strong> · ${r.date||'—'} · ${esc(r.interviewer||'—')}
+          <div style="margin-top:6px;color:var(--text2)">Tech:${r.scores.technical} Comm:${r.scores.communication} Lead:${r.scores.leadership} PS:${r.scores.problemSolving} CF:${r.scores.cultureFit}</div>
+          <div style="color:var(--accent2);font-weight:700">Avg: ${avgScores(r.scores).toFixed(1)}/10 · ${r.decision}</div>
+          ${r.comments?`<div style="color:var(--text2);margin-top:4px">"${esc(r.comments)}"</div>`:''}
+        </div>`).join('')
+        :'<div style="color:var(--text2);font-size:12px">No interview records yet.</div>'}
+    </div>`;
+  document.getElementById('resumeModal').style.display='flex';
+}
+
+function updatePipelineStats(){
+  const ps=s=>candidates.filter(c=>c.pipeline&&c.pipeline.stage===s).length;
+  const iCount=candidates.filter(c=>c.pipeline&&c.pipeline.stage.startsWith('Interview')).length;
+  const el=id=>document.getElementById(id);
+  if(el('ps-resume'))el('ps-resume').textContent=ps('Resume');
+  if(el('ps-interview'))el('ps-interview').textContent=iCount;
+  if(el('ps-offer'))el('ps-offer').textContent=ps('Offer');
+  if(el('ps-reject'))el('ps-reject').textContent=ps('Rejected');
+  renderPipelineBarChart();
+  renderInterviewRadarChart();
+  renderPassRateChart();
+  renderUpcomingSessions();
+}
+
+// ===================== SESSIONS =====================
+function openSessionModal(){document.getElementById('sessionModal').style.display='flex';}
+function closeSessionModal(){document.getElementById('sessionModal').style.display='none';}
+function saveSession(){
+  const name=document.getElementById('sm-name').value.trim()||`Session ${interviewSessions.length+1}`;
+  interviewSessions.push({
+    id:Date.now(),name,
+    date:document.getElementById('sm-date').value,
+    time:document.getElementById('sm-time').value,
+    location:document.getElementById('sm-loc').value,
+    interviewer:document.getElementById('sm-iewer').value,
+    candidates:[]
+  });
+  closeSessionModal();
+  renderSessionGrid();
+  renderEvalSessionSel();
+}
+
+function renderSessionGrid(){
+  const el=document.getElementById('sessionGrid');
+  if(!el)return;
+  el.innerHTML=interviewSessions.length?interviewSessions.map(s=>`
+    <div class="session-card ${activeSessionId===s.id?'active':''}" onclick="selectSession(${s.id})">
+      <div class="session-title">🗓 ${esc(s.name)}</div>
+      <div class="session-meta">📅 ${s.date||'—'} ${s.time||''}<br>📍 ${esc(s.location||'—')}<br>👤 ${esc(s.interviewer||'—')}</div>
+      <div class="session-cands">${s.candidates.map(ci=>{
+        const c=candidates.find(x=>x.idx===ci);
+        return c?`<span class="sc-tag">${esc(c.name.split(' ')[0])}<span class="rm" onclick="removeCandFromSession(event,${s.id},${ci})">✕</span></span>`:'';
+      }).join('')}</div>
+    </div>`).join('')
+  :'<div style="color:var(--text2);font-size:13px">No sessions yet. Click + Add Session.</div>';
+}
+
+function selectSession(sid){
+  activeSessionId=sid;
+  renderSessionGrid();
+  const s=interviewSessions.find(x=>x.id===sid);
+  const el=document.getElementById('sessionDetailCard');
+  const tl=document.getElementById('sessionDetailTitle');
+  if(!s||!el)return;
+  el.style.display='block';
+  tl.textContent=`👥 ${s.name} Candidates`;
+  document.getElementById('sessionCandList').innerHTML=
+    s.candidates.length?s.candidates.map(ci=>{
+      const c=candidates.find(x=>x.idx===ci);
+      return c?`<div class="cand-list-item" onclick="openEvalForCand(${ci})">${esc(c.name)}<span style="color:var(--text2);font-size:10px"> · ${esc(c.role)}</span></div>`:'';
+    }).join('')
+    :'<div style="color:var(--text2);font-size:12px;padding:8px">No candidates added yet.</div>';
+}
+
+function removeCandFromSession(e,sid,ci){
+  e.stopPropagation();
+  const s=interviewSessions.find(x=>x.id===sid);
+  if(s)s.candidates=s.candidates.filter(x=>x!==ci);
+  renderSessionGrid();if(activeSessionId===sid)selectSession(sid);
+}
+
+// Pool
+let dragPoolIdx=null;
+function renderPool(){
+  const q=(document.getElementById('poolSearch')?.value||'').toLowerCase();
+  const el=document.getElementById('candPool');
+  if(!el)return;
+  const list=candidates.filter(c=>!q||c.name.toLowerCase().includes(q)||c.role.toLowerCase().includes(q)).slice(0,80);
+  el.innerHTML=list.map(c=>`
+    <div class="pool-item" draggable="true"
+      ondragstart="dragPoolStart(event,${c.idx})"
+      ondragend="event.currentTarget.style.opacity=1">
+      <span>${esc(c.name)} <span style="color:var(--text2);font-size:10px">${esc(c.role)}</span></span>
+      <span class="level-badge lvl-${c.level.toLowerCase()}" style="font-size:9px">${c.level}</span>
+    </div>`).join('');
+  // make session cards droppable
+  document.querySelectorAll('.session-card').forEach(sc=>{
+    sc.ondragover=e=>e.preventDefault();
+    sc.ondrop=e=>{
+      e.preventDefault();
+      if(dragPoolIdx===null)return;
+      const sid=parseInt(sc.getAttribute('data-sid'));
+      if(!sid)return;
+      const s=interviewSessions.find(x=>x.id===sid);
+      if(s&&!s.candidates.includes(dragPoolIdx))s.candidates.push(dragPoolIdx);
+      renderSessionGrid();dragPoolIdx=null;
+    };
+  });
+}
+function dragPoolStart(e,idx){dragPoolIdx=idx;e.currentTarget.style.opacity='.4';}
+function dropToPool(e){e.preventDefault();dragPoolIdx=null;document.getElementById('candPool').classList.remove('drag-over');}
+
+// Add cand to active session via pool drag
+document.addEventListener('dragover',e=>{
+  const sc=e.target.closest('.session-card');
+  if(sc)e.preventDefault();
+});
+document.addEventListener('drop',e=>{
+  const sc=e.target.closest('.session-card');
+  if(sc&&dragPoolIdx!==null){
+    const sid=interviewSessions[Array.from(document.querySelectorAll('.session-card')).indexOf(sc)]?.id;
+    if(sid){
+      const s=interviewSessions.find(x=>x.id===sid);
+      if(s&&!s.candidates.includes(dragPoolIdx))s.candidates.push(dragPoolIdx);
+      renderSessionGrid();dragPoolIdx=null;
+    }
+  }
+});
+
+// ===================== EVALUATION =====================
+function renderEvalSessionSel(){
+  const sel=document.getElementById('evalSessionSel');
+  if(!sel)return;
+  sel.innerHTML='<option value="">— Select Session —</option>'+
+    interviewSessions.map(s=>`<option value="${s.id}">${esc(s.name)}</option>`).join('');
+}
+
+function renderEvalPanel(){
+  const sid=parseInt(document.getElementById('evalSessionSel')?.value);
+  const s=interviewSessions.find(x=>x.id===sid);
+  const el=document.getElementById('evalCandList');
+  if(!el)return;
+  if(!s){el.innerHTML='<div style="color:var(--text2);font-size:12px;padding:8px">Select a session above.</div>';return;}
+  el.innerHTML=s.candidates.map(ci=>{
+    const c=candidates.find(x=>x.idx===ci);
+    if(!c)return'';
+    const lastRec=c.interviewRecords?.slice(-1)[0];
+    return`<div class="cand-list-item ${activeEvalCandIdx===ci?'active':''}" onclick="selectEvalCand(${ci},${sid})">
+      ${esc(c.name)}
+      <div style="font-size:10px;color:var(--text2)">${esc(c.role)}</div>
+      ${lastRec?`<div style="font-size:10px;color:var(--accent2)">Last: ${avgScores(lastRec.scores).toFixed(1)}/10 · ${lastRec.decision}</div>`:''}
+    </div>`;
+  }).join('')||'<div style="color:var(--text2);font-size:12px;padding:8px">No candidates in this session.</div>';
+}
+
+function selectEvalCand(ci,sid){
+  activeEvalCandIdx=ci;
+  renderEvalPanel();
+  renderEvalForm(ci,sid);
+}
+
+function openEvalForCand(ci){
+  switchInterviewTab('eval');
+  document.querySelectorAll('.inner-tab').forEach((t,i)=>{t.classList.toggle('active',i===1);});
+  activeEvalCandIdx=ci;
+  renderEvalForm(ci,null);
+}
+
+function renderEvalForm(ci,sid){
+  const c=candidates.find(x=>x.idx===ci);
+  if(!c)return;
+  const el=document.getElementById('evalFormCard');
+  if(!el)return;
+  const round=(c.interviewRecords?.length||0)+1;
+  const s=sid?interviewSessions.find(x=>x.id===sid):null;
+  const dims=['communication','technical','leadership','problemSolving','cultureFit'];
+  const labels={'communication':'💬 Communication','technical':'💻 Technical','leadership':'🏆 Leadership','problemSolving':'🧩 Problem Solving','cultureFit':'🤝 Culture Fit'};
+  el.innerHTML=`
+    <div style="font-weight:700;font-size:13px;margin-bottom:12px;color:var(--text)">
+      📝 ${esc(c.name)} — Round ${round}
+      <span style="font-size:11px;color:var(--text2);font-weight:400;margin-left:8px">${esc(c.role)}</span>
+    </div>
+    ${dims.map(d=>`
+      <div class="eval-row">
+        <span class="eval-label">${labels[d]}</span>
+        <input type="range" min="0" max="10" value="5" class="score-slider" id="es-${d}"
+          oninput="document.getElementById('ev-${d}').textContent=this.value;updateOverallScore()">
+        <span class="eval-val" id="ev-${d}">5</span>
+      </div>`).join('')}
+    <div class="overall-score" id="overallScore">
+      <div style="font-size:11px;color:var(--text2);margin-bottom:2px">Overall Average</div>
+      <div class="overall-num" id="overallNum">5.0</div>
+      <div style="font-size:11px;color:var(--text2)">/10</div>
+    </div>
+    <div style="margin-bottom:10px">
+      <label style="font-size:12px;color:var(--text2)">Interviewer</label>
+      <input id="ev-iewer" class="search-input" style="width:100%;margin-top:4px;font-size:12px" value="${esc(s?.interviewer||'')}" placeholder="Interviewer name">
+    </div>
+    <div style="margin-bottom:10px">
+      <label style="font-size:12px;color:var(--text2)">Comments</label>
+      <textarea id="ev-comments" style="width:100%;height:70px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:8px;font-size:12px;resize:none;outline:none;margin-top:4px" placeholder="Interview notes..."></textarea>
+    </div>
+    <div style="display:flex;gap:10px;align-items:center">
+      <label style="font-size:12px;color:var(--text2)">Decision</label>
+      <select id="ev-decision" class="filter-sel">
+        <option value="Pending">Pending</option>
+        <option value="Pass">Pass ✅</option>
+        <option value="Hold">Hold ⏸</option>
+        <option value="Reject">Reject ❌</option>
+      </select>
+      <button class="upload-btn" onclick="saveEvalRecord(${ci})" style="margin-left:auto">💾 Save Record</button>
+    </div>
+    <div style="margin-top:14px;border-top:1px solid var(--border);padding-top:10px">
+      <div class="card-title">Previous Records</div>
+      ${c.interviewRecords?.length?c.interviewRecords.map(r=>`
+        <div style="background:var(--bg3);border-radius:6px;padding:8px;margin-bottom:6px;font-size:11px">
+          <strong>Round ${r.round}</strong> · ${r.date} · ${esc(r.interviewer||'—')}
+          <div style="color:var(--accent2)">Avg ${avgScores(r.scores).toFixed(1)}/10 · ${r.decision}</div>
+        </div>`).join('')
+        :'<div style="color:var(--text2);font-size:12px">No records yet.</div>'}
+    </div>`;
+  // resume panel
+  if(document.getElementById('showResumeCk')?.checked)renderResumeSidePanel(ci);
+}
+
+function updateOverallScore(){
+  const dims=['communication','technical','leadership','problemSolving','cultureFit'];
+  const vals=dims.map(d=>parseInt(document.getElementById('es-'+d)?.value||5));
+  const avg=vals.reduce((a,b)=>a+b,0)/vals.length;
+  const el=document.getElementById('overallNum');
+  if(el)el.textContent=avg.toFixed(1);
+}
+
+function saveEvalRecord(ci){
+  const c=candidates.find(x=>x.idx===ci);
+  if(!c)return;
+  if(!c.interviewRecords)c.interviewRecords=[];
+  const dims=['communication','technical','leadership','problemSolving','cultureFit'];
+  const scores={};dims.forEach(d=>{scores[d]=parseInt(document.getElementById('es-'+d)?.value||5);});
+  const decision=document.getElementById('ev-decision')?.value||'Pending';
+  c.interviewRecords.push({
+    round:(c.interviewRecords.length)+1,
+    date:new Date().toISOString().slice(0,10),
+    interviewer:document.getElementById('ev-iewer')?.value||'',
+    scores,comments:document.getElementById('ev-comments')?.value||'',decision
+  });
+  // auto advance pipeline
+  const col=kanbanCols.find(k=>k.startsWith('Interview '+(c.interviewRecords.length)));
+  if(col&&decision==='Pass'){c.pipeline.stage=col;c.pipeline.history.push({stage:col,result:'Pass',time:Date.now()});}
+  if(decision==='Reject'){c.pipeline.stage='Rejected';c.pipeline.history.push({stage:'Rejected',result:'Reject',time:Date.now()});}
+  saveToStorage();
+  renderEvalForm(ci,null);
+  renderEvalPanel();
+  showToast('Record saved!');
+}
+
+function avgScores(scores){
+  const vals=Object.values(scores).map(Number);
+  return vals.length?vals.reduce((a,b)=>a+b,0)/vals.length:0;
+}
+
+function toggleResumePanel(){
+  const show=document.getElementById('showResumeCk')?.checked;
+  const layout=document.getElementById('interviewLayout');
+  if(layout)layout.className='interview-layout'+(show?' with-resume':'');
+  if(show&&activeEvalCandIdx!==null)renderResumeSidePanel(activeEvalCandIdx);
+  else{const rp=document.getElementById('resumeSidePanel');if(rp)rp.remove();}
+}
+
+function renderResumeSidePanel(ci){
+  const layout=document.getElementById('interviewLayout');
+  if(!layout)return;
+  let rp=document.getElementById('resumeSidePanel');
+  if(!rp){rp=document.createElement('div');rp.id='resumeSidePanel';rp.className='card';layout.appendChild(rp);}
+  const raw=cleanData[ci]?.Resume||'N/A';
+  rp.innerHTML=`<div class="card-title">📄 Full Resume</div>
+    <div style="white-space:pre-wrap;font-size:11px;line-height:1.7;color:var(--text3);overflow-y:auto;max-height:60vh">${esc(raw)}</div>`;
+}
+
+function switchInterviewTab(tab){
+  document.querySelectorAll('.inner-tab').forEach(t=>t.classList.remove('active'));
+  ['schedule','eval','stats'].forEach(t=>{
+    const el=document.getElementById('itab-'+t);
+    if(el)el.style.display=t===tab?'block':'none';
+  });
+  if(tab==='stats')updatePipelineStats();
+  if(tab==='schedule'){renderSessionGrid();renderPool();renderEvalSessionSel();}
+}
+
+// ===================== INTERVIEW CHARTS =====================
+function renderPipelineBarChart(){
+  const stageCounts={};
+  kanbanCols.forEach(c=>{stageCounts[c]=candidates.filter(x=>x.pipeline&&x.pipeline.stage===c).length;});
+  destroyChart('pipelineBarChart');
+  const ctx=document.getElementById('pipelineBarChart');if(!ctx)return;
+  charts.pipelineBar=new Chart(ctx,{type:'bar',
+    data:{labels:Object.keys(stageCounts),datasets:[{data:Object.values(stageCounts),
+      backgroundColor:Object.keys(stageCounts).map(s=>stageColor(s)+'aa'),
+      borderColor:Object.keys(stageCounts).map(stageColor),borderWidth:1,borderRadius:5}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+      scales:{x:{grid:{display:false},ticks:{color:'#94a3b8',font:{size:10}}},
+              y:{grid:{color:'rgba(148,163,184,.1)'},ticks:{color:'#94a3b8'}}}}});
+}
+
+function renderInterviewRadarChart(){
+  const dims=['communication','technical','leadership','problemSolving','cultureFit'];
+  const avgs=dims.map(d=>{
+    const vals=candidates.flatMap(c=>(c.interviewRecords||[]).map(r=>r.scores[d]||0));
+    return vals.length?vals.reduce((a,b)=>a+b,0)/vals.length:0;
+  });
+  destroyChart('interviewRadarChart');
+  const ctx=document.getElementById('interviewRadarChart');if(!ctx)return;
+  charts.iRadar=new Chart(ctx,{type:'radar',
+    data:{labels:['Comm','Technical','Lead','Problem Solving','Culture'],
+      datasets:[{data:avgs,backgroundColor:'rgba(99,102,241,.2)',borderColor:'#6366f1',pointBackgroundColor:'#6366f1'}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+      scales:{r:{grid:{color:'rgba(148,163,184,.15)'},ticks:{display:false},
+        pointLabels:{color:'#94a3b8',font:{size:10}},suggestedMin:0,suggestedMax:10}}}});
+}
+
+function renderPassRateChart(){
+  const sessions=interviewSessions.slice(-8);
+  const rates=sessions.map(s=>{
+    const recs=s.candidates.flatMap(ci=>candidates.find(x=>x.idx===ci)?.interviewRecords||[]);
+    const passed=recs.filter(r=>r.decision==='Pass').length;
+    return recs.length?Math.round(passed/recs.length*100):0;
+  });
+  destroyChart('passRateChart');
+  const ctx=document.getElementById('passRateChart');if(!ctx)return;
+  charts.passRate=new Chart(ctx,{type:'line',
+    data:{labels:sessions.map(s=>s.name),datasets:[{data:rates,borderColor:'#10b981',
+      backgroundColor:'rgba(16,185,129,.1)',fill:true,tension:.4,pointBackgroundColor:'#10b981'}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+      scales:{x:{grid:{display:false},ticks:{color:'#94a3b8',font:{size:10}}},
+              y:{min:0,max:100,grid:{color:'rgba(148,163,184,.1)'},ticks:{color:'#94a3b8',callback:v=>v+'%'}}}}});
+}
+
+function renderUpcomingSessions(){
+  const el=document.getElementById('upcomingSessions');if(!el)return;
+  const today=new Date().toISOString().slice(0,10);
+  const upcoming=interviewSessions.filter(s=>s.date>=today).sort((a,b)=>a.date.localeCompare(b.date)).slice(0,6);
+  el.innerHTML=upcoming.length?upcoming.map(s=>`
+    <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px">
+      <span><strong>${esc(s.name)}</strong> <span style="color:var(--text2)">· ${s.candidates.length} candidates</span></span>
+      <span style="color:var(--accent2)">${s.date} ${s.time}</span>
+    </div>`).join('')
+  :'<div style="color:var(--text2)">No upcoming sessions scheduled.</div>';
+}
+
+// ===================== STORAGE =====================
+function saveToStorage(){debouncedSave();showToast('Saving…');}
+
+// ===================== CHART UPDATE HELPERS =====================
+function updateOrCreateBar(id,labels,data,colors,opts={}){
+  if(charts[id]&&charts[id].data){
+    charts[id].data.labels=labels;
+    charts[id].data.datasets[0].data=data;
+    if(colors)charts[id].data.datasets[0].backgroundColor=colors;
+    charts[id].update('none');return;
+  }
+  destroyChart(id);
+  const ctx=document.getElementById(id);if(!ctx)return;
+  charts[id]=new Chart(ctx,{type:opts.type||'bar',data:{labels,datasets:[{data,backgroundColor:colors,borderRadius:opts.radius||4,...(opts.ds||{})}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},...(opts.options||{})}});
+}
+function updateOrCreateDoughnut(id,labels,data,colors){
+  if(charts[id]&&charts[id].data){
+    charts[id].data.labels=labels;
+    charts[id].data.datasets[0].data=data;
+    charts[id].update('none');return;
+  }
+  destroyChart(id);
+  const ctx=document.getElementById(id);if(!ctx)return;
+  charts[id]=new Chart(ctx,{type:'doughnut',data:{labels,datasets:[{data,backgroundColor:colors,borderWidth:2,borderColor:'var(--bg2)'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#94a3b8'}}}}});
+}
+function loadStorage(k){
+  try{const v=localStorage.getItem('ats_'+k);return v?JSON.parse(v):null;}catch{return null;}
+}
+
+function showToast(msg){
+  let t=document.getElementById('toast');
+  if(!t){t=document.createElement('div');t.id='toast';t.style.cssText='position:fixed;bottom:24px;right:24px;background:var(--green);color:#fff;padding:10px 18px;border-radius:8px;font-size:13px;font-weight:600;z-index:99999;opacity:0;transition:opacity .3s';document.body.appendChild(t);}
+  t.textContent=msg;t.style.opacity='1';
+  setTimeout(()=>t.style.opacity='0',2000);
+}
+
+// ===================== MODAL =====================
+function showResumeModal(idx){
+  const c=candidates.find(x=>x.idx===idx);
+  if(!c)return;
+  const raw=cleanData[idx]?.Resume||'N/A';
+  document.getElementById('resumeContent').innerHTML=
+    `<div style="background:var(--bg3);border-radius:8px;padding:14px;margin-bottom:16px;font-size:13px;line-height:1.9">
+      <div style="font-weight:700;font-size:14px;color:var(--accent2);border-bottom:1px solid var(--border);padding-bottom:8px;margin-bottom:10px">📋 Candidate Summary</div>
+      <div><span style="color:var(--text2);min-width:70px;display:inline-block">Name</span> <strong>${esc(c.name)}</strong></div>
+      <div><span style="color:var(--text2);min-width:70px;display:inline-block">Role</span> <strong>${esc(c.role)}</strong></div>
+      <div><span style="color:var(--text2);min-width:70px;display:inline-block">Fit Score</span> <strong style="color:var(--accent2)">${c.fitScore.toFixed(1)}</strong></div>
+      <div><span style="color:var(--text2);min-width:70px;display:inline-block">Level</span> <span class="level-badge lvl-${c.level.toLowerCase()}">${c.level}</span></div>
+      <div><span style="color:var(--text2);min-width:70px;display:inline-block">Stage</span> <span class="badge badge-blue" style="font-size:10px">${esc(c.pipeline.currentStage)}</span></div>
+      <div><span style="color:var(--text2);min-width:70px;display:inline-block">Status</span> <strong>${c.pipeline.status}</strong></div>
+      <div><span style="color:var(--text2);min-width:70px;display:inline-block">Hist. Label</span> <span style="font-size:11px;color:var(--text2)">${c.historicalDecision||'—'} <em>(reference only)</em></span></div>
+      <div style="margin-top:6px"><span style="color:var(--text2)">Skills &nbsp;&nbsp;</span> ${c.skills.length?c.skills.map(s=>`<span class="skill-tag">${s}</span>`).join(''):'<span style="color:var(--text2)">None detected</span>'}</div>
+      ${c.contact?.email?`<div style="margin-top:6px"><span style="color:var(--text2)">Email &nbsp;&nbsp;&nbsp;</span> <a href="mailto:${esc(c.contact.email)}" style="color:var(--accent2)">${esc(c.contact.email)}</a></div>`:''}
+      ${c.contact?.phone?`<div><span style="color:var(--text2)">Phone &nbsp;&nbsp;</span> ${esc(c.contact.phone)}</div>`:''}
+      ${c.contact?.linkedin?`<div><span style="color:var(--text2)">LinkedIn </span> <a href="https://${esc(c.contact.linkedin)}" target="_blank" style="color:var(--accent2)">${esc(c.contact.linkedin)}</a></div>`:''}
+      ${c.contact?.github?`<div><span style="color:var(--text2)">GitHub &nbsp;</span> <a href="https://${esc(c.contact.github)}" target="_blank" style="color:var(--accent2)">${esc(c.contact.github)}</a></div>`:''}
+    </div>
+    <div style="font-weight:700;font-size:13px;color:var(--text2);border-bottom:1px solid var(--border);padding-bottom:6px;margin-bottom:10px">📄 Full Resume</div>
+    <div style="white-space:pre-wrap;line-height:1.8;font-size:13px;color:var(--text)">${esc(raw)}</div>`;
+  document.getElementById('resumeModal').style.display='flex';
+}
+function closeResumeModal(){
+  document.getElementById('resumeModal').style.display='none';
+}
+window.onclick=function(e){
+  const m=document.getElementById('resumeModal');
+  if(e.target===m)closeResumeModal();
+};
+
+// ===================== ACCORDION =====================
+function toggleAccordion(header){
+  const body=header.nextElementSibling;
+  const arrow=header.querySelector('.accordion-arrow');
+  const open=body.classList.toggle('open');
+  arrow.style.transform=open?'rotate(180deg)':'';
+  // lazy init flow diagram when that accordion opens
+  if(open&&body.querySelector('#flowDiagram')&&!document.querySelector('#flowDiagram .flow-node')){
+    renderFlowDiagram();
+  }
+}
+
+// ===================== ON-DEMAND CHARTS (genChart / genViz) =====================
+const chartCache={};
+
+function genChart(id){
+  if(chartCache[id]){return;} // already rendered
+  if(id==='levelChart'){
+    document.getElementById('levelPlaceholder').style.display='none';
+    document.getElementById('levelChartContainer').style.display='block';
+    renderLevelChart();chartCache[id]=true;
+  }
+  if(id==='histChart'){
+    document.getElementById('histPlaceholder').style.display='none';
+    document.getElementById('histChartContainer').style.display='block';
+    renderHistChart();chartCache[id]=true;
+  }
+}
+
+function genViz(id){
+  if(chartCache[id]){return;}
+  const map={
+    'skillCloud':()=>{document.getElementById('scPlaceholder').style.display='none';document.getElementById('skillCloud').style.display='flex';renderSkillCloud();},
+    'networkChart':()=>{document.getElementById('netPlaceholder').style.display='none';document.getElementById('networkChart').style.display='block';renderNetworkChart();},
+    'skillBarChart':()=>{document.getElementById('sbPlaceholder').style.display='none';document.getElementById('skillBarContainer').style.display='block';renderSkillBarChart();},
+    'heatmapChart':()=>{document.getElementById('hmPlaceholder').style.display='none';document.getElementById('heatmapWrap').style.display='block';renderHeatmapChart();},
+    'decisionChart':()=>{document.getElementById('dcPlaceholder').style.display='none';document.getElementById('decisionContainer').style.display='block';renderHistoricalDecisionChart();},
+    'roleDecisionChart':()=>{document.getElementById('rdPlaceholder').style.display='none';document.getElementById('roleDecisionContainer').style.display='block';renderRoleDecisionChart();}
+  };
+  if(map[id]){map[id]();chartCache[id]=true;}
+}
+
+// ===================== CANDIDATE CARD VIEW =====================
+let candViewMode='cards'; // 'cards' | 'table'
+function toggleCandView(){
+  candViewMode=candViewMode==='cards'?'table':'cards';
+  document.getElementById('viewToggleBtn').textContent=candViewMode==='cards'?'📋 Table View':'🃏 Card View';
+  document.getElementById('candGrid').style.display=candViewMode==='cards'?'grid':'none';
+  document.getElementById('candTableWrap').style.display=candViewMode==='table'?'block':'none';
+  renderCandidateTable();
+}
+
+function renderCandCards(page){
+  const el=document.getElementById('candGrid');if(!el)return;
+  const start=(currentPage-1)*pageSize;
+  const data=filteredCandidates.slice(start,start+pageSize);
+  const statusColor={'Pending':'var(--text2)','Pass':'var(--green)','Reject':'var(--red)','Hold':'var(--yellow)','Offer':'var(--blue)','Withdrawn':'#a78bfa'};
+  el.innerHTML=data.map(c=>{
+    const ct=c.contact||{};
+    const initials=c.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+    return`<div class="cand-card">
+      <div style="display:flex;align-items:flex-start;gap:10px">
+        <div class="cand-avatar">${initials}</div>
+        <div style="flex:1;min-width:0">
+          <div class="cand-name">${esc(c.name)}</div>
+          <div class="cand-role">${esc(c.role)}</div>
+        </div>
+        <span class="level-badge lvl-${c.level.toLowerCase()}">${c.level}</span>
+      </div>
+      <div class="cand-contact">
+        ${ct.email?`<div><a href="mailto:${esc(ct.email)}">📧 ${esc(ct.email)}</a></div>`:''}
+        ${ct.phone?`<div>📞 ${esc(ct.phone)}</div>`:''}
+        ${ct.linkedin?`<div><a href="https://${esc(ct.linkedin)}" target="_blank">🔗 LinkedIn</a></div>`:''}
+        ${!ct.email&&!ct.phone&&!ct.linkedin?`<div style="color:var(--text3)">No contact info</div>`:''}
+      </div>
+      <div>
+        ${c.skills.slice(0,4).map(s=>`<span class="skill-tag">${s}</span>`).join('')}
+        ${c.skills.length>4?`<span class="skill-tag">+${c.skills.length-4}</span>`:''}
+      </div>
+      <div class="cand-footer">
+        <span class="score-pill">⭐ ${c.fitScore.toFixed(1)}</span>
+        <span style="font-size:11px;color:var(--text2)">${c.edu.label} · ${c.exp.toFixed(1)}yr</span>
+        <span style="font-size:11px;font-weight:600;color:${statusColor[c.pipeline.status]||'var(--text2)'}">● ${c.pipeline.status}</span>
+      </div>
+      <div class="cand-actions">
+        <button class="cand-btn" onclick="showResumeModal(${c.idx})">📄 Resume</button>
+        <button class="cand-btn" onclick="showCandTimeline(${c.idx})">📅 Timeline</button>
+        <button class="cand-btn primary" onclick="showPipelineMove(${c.idx})">Move ›</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function showPipelineMove(idx){
+  const c=candidates.find(x=>x.idx===idx);if(!c)return;
+  const stage=prompt(`Move ${c.name} to stage:\n${kanbanCols.join(' / ')}\nCurrent: ${c.pipeline.currentStage}`);
+  if(stage&&kanbanCols.includes(stage)){
+    const result=stage==='Rejected'?'Reject':stage==='Offer'?'Offer':'Pass';
+    c.pipeline.currentStage=stage;c.pipeline.stage=stage;
+    c.pipeline.history.push({stage,result,time:Date.now()});
+    saveToStorage();renderCandidateTable();
+  }
+}
+
+// ===================== PERF UTILS =====================
+function debounce(fn,delay){
+  let t;return(...a)=>{clearTimeout(t);t=setTimeout(()=>fn(...a),delay);};
+}
+const debouncedRecalc=debounce(recalcScores,500);
+const debouncedFilter=debounce(filterCandidates,300);
+const debouncedSave=debounce(_doSave,1000);
+
+function _doSave(){
+  try{
+    const pipelines=candidates.map(c=>({idx:c.idx,pipeline:c.pipeline,interviewRecords:c.interviewRecords||[]}));
+    localStorage.setItem('ats_kanbanCols',JSON.stringify(kanbanCols));
+    localStorage.setItem('ats_sessions',JSON.stringify(interviewSessions));
+    localStorage.setItem('ats_pipelines',JSON.stringify(pipelines));
+  }catch(e){console.warn('Storage error',e);}
+}
+
+// ===================== PERF MONITOR =====================
+function initPerfMonitor(){
+  const el=document.createElement('div');
+  el.id='perfMon';
+  el.style.cssText='position:fixed;bottom:16px;right:16px;background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:10px 14px;font-size:11px;z-index:8888;min-width:160px;line-height:1.9;color:var(--text2);box-shadow:0 4px 16px rgba(0,0,0,.3)';
+  el.innerHTML='<div style="font-weight:700;color:var(--accent2);margin-bottom:4px">⚡ Performance</div><div id="pm-body">—</div>';
+  document.body.appendChild(el);
+  updatePerfMonitor();
+  setInterval(updatePerfMonitor,5000);
+}
+function updatePerfMonitor(){
+  const el=document.getElementById('pm-body');if(!el)return;
+  const mem=performance.memory?Math.round(performance.memory.usedJSHeapSize/1048576):0;
+  let storageKB=0;
+  try{['ats_kanbanCols','ats_sessions','ats_pipelines'].forEach(k=>{storageKB+=((localStorage.getItem(k)||'').length*2)/1024;});}catch{}
+  el.innerHTML=`Candidates: <strong style="color:var(--text)">${candidates.length}</strong><br>
+Memory: <strong style="color:var(--text)">${mem?mem+'MB':'N/A'}</strong><br>
+Storage: <strong style="color:var(--text)">${storageKB.toFixed(1)}KB</strong><br>
+Charts: <strong style="color:var(--text)">${Object.keys(charts).length}</strong>`;
+}
+
+// ===================== STATE =====================
+let rawData=[], cleanData=[], candidates=[], filteredCandidates=[];
+let currentPage=1, pageSize=20;
+let featPage=1, featPageSize=15;
+let sortField='fitScore', sortDir=-1;
+let charts={};
+let darkMode=true;
+let weights={skill:.4,exp:.3,edu:.1,sem:.2};
+let roleExpReq={};
+
+const SKILLS=[
+  "python","sql","excel","java","c++","tableau","machine learning",
+  "marketing","seo","leadership","project management","data analysis",
+  "ui","ux","javascript","typescript","react","node","aws","docker",
+  "communication","agile","scrum","power bi","r","tensorflow","keras",
+  "deep learning","nlp","statistics","finance","accounting"
+];
+
+const EDU_MAP={phd:100,doctorate:100,master:90,msc:90,mba:90,bachelor:80,bsc:80,ba:80,college:60,diploma:60};
+
+const FLOW_NODES=[
+  {id:'import',icon:'📂',title:'Resume Import',sub:'CSV Parsing via PapaParse',detail:'Reads resume_dataset.csv with columns: Role, Resume, Decision, Reason_for_decision, Job_Description. Handles encoding, BOM, and delimiter detection automatically.'},
+  {id:'clean',icon:'🧹',title:'Data Cleaning',sub:'Remove nulls, duplicates, noise',detail:'Steps: (1) Remove fully empty rows. (2) Remove duplicate resumes. (3) Strip HTML tags, URLs, emails, phone numbers. (4) Lowercase normalization. (5) Remove special characters & extra whitespace.'},
+  {id:'skills',icon:'🔧',title:'Skill Extraction',sub:'Dictionary-based NER',detail:'Matches against a 30+ skill dictionary using fuzzy substring matching. Detects: python, sql, excel, java, machine learning, tableau, leadership, project management, etc.'},
+  {id:'exp',icon:'📅',title:'Experience Extraction',sub:'Regex pattern matching',detail:'Detects: "3 years experience", "5+ years", "worked for two years", "3-year tenure". Converts text numerals (two→2, three→3) and normalizes to float years.'},
+  {id:'edu',icon:'🎓',title:'Education Extraction',sub:'Keyword hierarchy matching',detail:'Detects: PhD/Doctorate (100), Master/MSc/MBA (90), Bachelor/BSc/BA (80), College/Diploma (60), Unknown (30). Uses keyword precedence to resolve conflicts.'},
+  {id:'jd',icon:'📋',title:'JD Keyword Extraction',sub:'TF-IDF term weighting',detail:'Extracts high-frequency terms from Job_Description field. Builds per-role vocabulary. Used for semantic similarity computation against resume text.'},
+  {id:'match',icon:'🎯',title:'Matching & Scoring',sub:'FitScore = 0.4S + 0.3E + 0.1D + 0.2Sem',detail:'SkillScore = matched_skills/required_skills × 100. ExperienceScore = candidate_years/required_years × 100. EducationScore = edu_map_value. SemanticScore = TF-IDF cosine similarity × 100.'},
+  {id:'rank',icon:'📊',title:'Candidate Ranking',sub:'Descending FitScore sort',detail:'All candidates sorted by FitScore descending. Ties broken by SkillScore then ExperienceScore. Rank assigned 1..N.'},
+  {id:'pool',icon:'🏆',title:'Talent Pool Tiering',sub:'S/A/B/C/D classification',detail:'S(90-100): Core Candidate → Fast Track. A(80-89): Priority Interview → Schedule ASAP. B(70-79): Reserve Pool → Keep for future. C(60-69): On Hold → Low priority. D(<60): Rejected → Archive.'},
+];
+
+// ===================== SAMPLE DATA =====================
+function generateSample(){
+  const roles=['Data Scientist','Software Engineer','Product Manager','Marketing Manager','UX Designer','Data Analyst','DevOps Engineer','HR Manager'];
+  const jds={
+    'Data Scientist':'Looking for a data scientist with strong python, machine learning, sql, statistics, and data analysis skills. 3+ years experience. Master or PhD preferred.',
+    'Software Engineer':'Software engineer needed with javascript, python, react, node, docker skills. 2+ years experience. Bachelor required.',
+    'Product Manager':'Product manager with leadership, project management, agile, scrum, communication skills. 5+ years experience. MBA preferred.',
+    'Marketing Manager':'Marketing manager with marketing, seo, excel, leadership, communication skills. 3+ years. Bachelor required.',
+    'UX Designer':'UX designer with ui, ux, figma, communication, leadership. 2+ years. Bachelor preferred.',
+    'Data Analyst':'Data analyst with sql, excel, tableau, power bi, data analysis, python. 2+ years. Bachelor required.',
+    'DevOps Engineer':'DevOps with docker, aws, python, javascript. 3+ years. Bachelor required.',
+    'HR Manager':'HR manager with leadership, communication, excel, project management. 3+ years. Bachelor preferred.'
+  };
+  const skillPools={
+    'Data Scientist':['python','sql','machine learning','statistics','data analysis','tableau','r','tensorflow','deep learning','keras','nlp'],
+    'Software Engineer':['javascript','python','react','node','docker','aws','typescript','java','c++','sql'],
+    'Product Manager':['leadership','project management','agile','scrum','communication','excel','tableau'],
+    'Marketing Manager':['marketing','seo','excel','leadership','communication','data analysis'],
+    'UX Designer':['ui','ux','communication','leadership'],
+    'Data Analyst':['sql','excel','tableau','power bi','data analysis','python','r'],
+    'DevOps Engineer':['docker','aws','python','javascript','java'],
+    'HR Manager':['leadership','communication','excel','project management','agile']
+  };
+  const eduLevels=['PhD','Master','Bachelor','Bachelor','Bachelor','College'];
+  const expWords=['2 years experience','3 years experience','5+ years experience','4 years of experience','worked for two years','3-year tenure','over 6 years','1 year experience'];
+  const names=['Alice','Bob','Carol','David','Emma','Frank','Grace','Henry','Iris','Jack','Kate','Liam','Mia','Noah','Olivia','Paul','Quinn','Rachel','Sam','Tina','Uma','Victor','Wendy','Xavier','Yara','Zoe','Alex','Blake','Casey','Drew'];
+  const surnames=['Chen','Smith','Johnson','Williams','Brown','Jones','Garcia','Miller','Davis','Wilson','Taylor','Anderson','Lee','Martinez','Thompson'];
+  const histDecisions=['Accept','Reject'];
+  const rows=[];
+  for(let i=0;i<300;i++){
+    const role=roles[Math.floor(Math.random()*roles.length)];
+    const name=names[Math.floor(Math.random()*names.length)]+' '+surnames[Math.floor(Math.random()*surnames.length)];
+    const edu=eduLevels[Math.floor(Math.random()*eduLevels.length)];
+    const exp=expWords[Math.floor(Math.random()*expWords.length)];
+    const pool=skillPools[role];
+    const numSkills=2+Math.floor(Math.random()*5);
+    const shuffled=[...pool].sort(()=>Math.random()-.5).slice(0,numSkills);
+    const hd=histDecisions[Math.random()>.35?1:0];
+    const resume=`${name} - Resume\n${edu} in Computer Science\n${exp}\nSkills: ${shuffled.join(', ')}\nExperience at Tech Corp\nPassionate about ${role.toLowerCase()}.`;
+    rows.push({Role:role,Resume:resume,Historical_Decision:hd,Decision_Reason:hd==='Accept'?`Strong skill match for ${role}`:`Missing key skills`,Job_Description:jds[role]||''});
+  }
+  rows.push({Role:'',Resume:'',Historical_Decision:'',Decision_Reason:'',Job_Description:''});
+  rows.push(rows[0]);
+  return rows;
+}
+
+// ===================== FILE HANDLING =====================
+function handleFileUpload(inp){
+  if(!inp.files||!inp.files[0])return;
+  const f=inp.files[0];
+  setLoadMsg('Parsing CSV...');
+  showLoading(true);
+  Papa.parse(f,{
+    header:true,skipEmptyLines:true,
+    complete:res=>{
+      rawData=res.data;
+      processData();
+    },
+    error:e=>{showLoading(false);alert('CSV parse error: '+e.message)}
+  });
+}
+function handleDrop(e){
+  e.preventDefault();
+  document.getElementById('uploadZone').classList.remove('drag');
+  const f=e.dataTransfer.files[0];
+  if(f){
+    const inp=document.createElement('input');
+    inp.files=e.dataTransfer.files;
+    handleFileUpload({files:e.dataTransfer.files});
+  }
+}
+function loadSampleData(){
+  showLoading(true);setLoadMsg('Generating sample data...');
+  setTimeout(()=>{rawData=generateSample();processData();},200);
+}
+
+// ===================== DATA PROCESSING =====================
+function processData(){
+  setLoadMsg('Cleaning data...');
+  setTimeout(()=>{
+    const orig=rawData.length;
+    let d=[...rawData];
+    // remove fully empty
+    d=d.filter(r=>Object.values(r).some(v=>v&&v.trim&&v.trim()));
+    const afterEmpty=d.length;
+    // remove duplicate resumes
+    const seen=new Set();
+    d=d.filter(r=>{
+      const k=(r.Resume||'').trim().slice(0,200);
+      if(!k)return true;
+      if(seen.has(k))return false;
+      seen.add(k);return true;
+    });
+    const afterDup=d.length;
+    // fill nulls + legacy migration
+    let legacyMigrated=0;
+    d=d.map(r=>{
+      // Legacy CSV field migration: Decision→Historical_Decision
+      let hd=r.Historical_Decision||r.Decision||'';
+      let dr=r.Decision_Reason||r.Reason_for_decision||'';
+      if((r.Decision||r.Reason_for_decision)&&!r.Historical_Decision)legacyMigrated++;
+      return{
+        Role:r.Role||'Unknown',
+        Resume:r.Resume||'',
+        Historical_Decision:hd,
+        Decision_Reason:dr,
+        Job_Description:r.Job_Description||''
+      };
+    });
+    window._legacyMigrated=legacyMigrated;
+    cleanData=d;
+    window._cleanStats={orig,afterEmpty,afterDup,final:d.length};
+    setLoadMsg('Extracting features...');
+    setTimeout(()=>{
+      extractFeatures();
+      computeRoleExpReq();
+      calcScores();
+      renderAll();
+      showLoading(false);
+      document.getElementById('statusBadge').textContent=`${cleanData.length} Records Loaded`;
+      document.getElementById('statusBadge').className='badge badge-green';
+    },100);
+  },100);
+}
+
+function cleanText(t){
+  if(!t)return '';
+  return t.toLowerCase()
+    .replace(/<[^>]+>/g,'')
+    .replace(/https?:\/\/\S+/g,'')
+    .replace(/[\w.+-]+@[\w-]+\.[a-z]{2,}/g,'')
+    .replace(/\b\d{3}[-.\s]?\d{3}[-.\s]?\d{4}\b/g,'')
+    .replace(/[^\w\s+]/g,' ')
+    .replace(/\s+/g,' ').trim();
+}
+
+function extractSkills(text){
+  const t=cleanText(text);
+  return SKILLS.filter(s=>t.includes(s));
+}
+
+function extractExp(text){
+  const t=text.toLowerCase()
+    .replace(/\btwo\b/g,'2').replace(/\bthree\b/g,'3')
+    .replace(/\bfour\b/g,'4').replace(/\bfive\b/g,'5')
+    .replace(/\bsix\b/g,'6').replace(/\bseven\b/g,'7')
+    .replace(/\beight\b/g,'8').replace(/\bone\b/g,'1');
+  const patterns=[
+    /(\d+\.?\d*)\s*\+?\s*years?\s*(of\s+)?experience/,
+    /(\d+\.?\d*)-year\s+tenure/,
+    /experience\s+of\s+(\d+\.?\d*)\s*years?/,
+    /worked\s+for\s+(\d+\.?\d*)\s*years?/
+  ];
+  for(const p of patterns){
+    const m=t.match(p);
+    if(m)return parseFloat(m[1]);
+  }
+  return 1;
+}
+
+function extractEdu(text){
+  const t=text.toLowerCase();
+  if(/phd|doctorate|ph\.d/.test(t))return{label:'PhD',val:100};
+  if(/master|msc|m\.sc|mba|m\.eng/.test(t))return{label:'Master',val:90};
+  if(/bachelor|bsc|b\.sc|b\.a\b|b\.eng/.test(t))return{label:'Bachelor',val:80};
+  if(/college|diploma|associate/.test(t))return{label:'College',val:60};
+  return{label:'Unknown',val:30};
+}
+
+function extractContactInfo(text){
+  const email=(text.match(/[\w.+-]+@[\w-]+\.[a-zA-Z]{2,}/)||[])[0]||'';
+  const phone=(text.match(/(\+?\d{1,3})?[-.\s]?\(?\d{3,}\)?[-.\s]?\d{3,}[-.\s]?\d{3,}/)||[])[0]||'';
+  const linkedin=(text.match(/linkedin\.com\/[^\s,)]+/)||[])[0]||'';
+  const github=(text.match(/github\.com\/[^\s,)]+/)||[])[0]||'';
+  const website=(text.match(/https?:\/\/(?!linkedin|github)[^\s,)]+/)||[])[0]||'';
+  return{email,phone:phone.trim(),linkedin,github,website};
+}
+
+function extractName(text,idx){
+  const lines=text.split('\n');
+  const first=lines[0].replace(/[-–—]/g,' ').trim();
+  if(first&&first.length<40&&/^[A-Za-z\s]+$/.test(first))return first;
+  return `Candidate #${idx+1}`;
+}
+
+function extractFeatures(){
+  candidates=cleanData.map((r,i)=>{
+    const skills=extractSkills(r.Resume);
+    const exp=extractExp(r.Resume);
+    const edu=extractEdu(r.Resume);
+    const name=extractName(r.Resume,i);
+    const cleanedResume=cleanText(r.Resume);
+    const cleanedJD=cleanText(r.Job_Description);
+          return{
+      idx:i,name,role:r.Role,
+      skills,exp,edu,
+      contact:extractContactInfo(r.Resume),
+      historicalDecision:(r.Historical_Decision||'').toLowerCase(),
+      decisionReason:r.Decision_Reason||'',
+      jd:r.Job_Description,
+      cleanedResume,cleanedJD,
+      _semCache:null,  // invalidated on CSV load
+      skillScore:0,expScore:0,eduScore:0,semScore:0,fitScore:0,level:'',rank:0,
+      pipeline:{currentStage:'Resume',status:'Pending',history:[{stage:'Resume',result:'Pending',time:Date.now()}]},
+      interviewRecords:[]
+    };
+  });
+}
+
+// TF-IDF Cosine Similarity (simplified)
+function tfidfCosine(a,b){
+  if(!a||!b)return 0;
+  const tokenize=s=>s.toLowerCase().split(/\s+/).filter(w=>w.length>2);
+  const ta=tokenize(a),tb=tokenize(b);
+  if(!ta.length||!tb.length)return 0;
+  const freq=arr=>{const m={};arr.forEach(w=>m[w]=(m[w]||0)+1);return m;};
+  const fa=freq(ta),fb=freq(tb);
+  const vocab=new Set([...Object.keys(fa),...Object.keys(fb)]);
+  let dot=0,na=0,nb=0;
+  vocab.forEach(w=>{
+    const wa=fa[w]||0,wb=fb[w]||0;
+    dot+=wa*wb;na+=wa*wa;nb+=wb*wb;
+  });
+  if(!na||!nb)return 0;
+  return dot/Math.sqrt(na*nb);
+}
+
+function computeRoleExpReq(){
+  roleExpReq={};
+  const groups={};
+  cleanData.forEach(r=>{
+    if(!groups[r.Role])groups[r.Role]=[];
+    groups[r.Role].push(extractExp(r.Resume));
+  });
+  Object.entries(groups).forEach(([role,exps])=>{
+    const avg=exps.reduce((a,b)=>a+b,0)/exps.length;
+    roleExpReq[role]=Math.max(1,Math.round(avg*1.2));
+  });
+}
+
+function getJDSkills(role){
+  const jd=cleanData.find(r=>r.Role===role)?.Job_Description||'';
+  return extractSkills(jd);
+}
+
+function calcScores(){
+  const roleSkills={};
+  cleanData.forEach(r=>{
+    if(!roleSkills[r.Role])roleSkills[r.Role]=extractSkills(r.Job_Description||'');
+  });
+  candidates.forEach(c=>{
+    const req=roleSkills[c.role]||[];
+    const reqExp=roleExpReq[c.role]||3;
+    c.skillScore=req.length?Math.min(100,c.skills.filter(s=>req.includes(s)).length/req.length*100):
+      Math.min(100,c.skills.length/5*100);
+    c.expScore=Math.min(100,c.exp/reqExp*100);
+    c.eduScore=c.edu.val;
+    // semantic: use cache, recompute only if null
+    if(c._semCache==null){
+      c._semCache=Math.min(100,tfidfCosine(c.cleanedResume,c.cleanedJD)*300);
+    }
+    c.semScore=c._semCache;
+    c.fitScore=weights.skill*c.skillScore+weights.exp*c.expScore+weights.edu*c.eduScore+weights.sem*c.semScore;
+    c.fitScore=Math.min(100,Math.max(0,c.fitScore));
+  });
+  candidates.sort((a,b)=>b.fitScore-a.fitScore);
+  candidates.forEach((c,i)=>{
+    c.rank=i+1;
+    c.level=c.fitScore>=90?'S':c.fitScore>=80?'A':c.fitScore>=70?'B':c.fitScore>=60?'C':'D';
+    c.recommendation=c.level==='S'?'⚡ Fast Track':c.level==='A'?'✅ Schedule Interview':
+      c.level==='B'?'📋 Reserve Pool':c.level==='C'?'⏸ On Hold':'❌ Archive';
+  });
+  filteredCandidates=[...candidates];
+}
+
+function recalcScores(){
+  weights.skill=parseInt(document.getElementById('wSkillRange').value)/100;
+  weights.exp=parseInt(document.getElementById('wExpRange').value)/100;
+  weights.edu=parseInt(document.getElementById('wEduRange').value)/100;
+  weights.sem=parseInt(document.getElementById('wSemRange').value)/100;
+  calcScores();
+  filterCandidates();
+  renderDashboard();
+}
+
+// ===================== RENDER ALL =====================
+function renderAll(){
+  renderDashboard();
+  renderCandidateTable();
+  renderFlowDiagram();
+  renderCleaningLog();
+  renderFeatTable();
+  renderSettings();
+}
+
+// ===================== DASHBOARD =====================
+function renderDashboard(){
+  const total=candidates.length;
+  const offerCount=candidates.filter(c=>c.pipeline.status==='Offer').length;
+  const pendingCount=candidates.filter(c=>c.pipeline.status==='Pending').length;
+  const avgScore=total?(candidates.reduce((a,c)=>a+c.fitScore,0)/total).toFixed(1):0;
+  const roles=new Set(candidates.map(c=>c.role)).size;
+  document.getElementById('s-total').textContent=total;
+  document.getElementById('s-roles').textContent=roles+' Roles';
+  document.getElementById('s-pending').textContent=pendingCount;
+  document.getElementById('s-accept').textContent=offerCount;
+  document.getElementById('s-accept-pct').textContent=total?((offerCount/total*100).toFixed(1)+'% rate'):'—';
+  document.getElementById('s-avg').textContent=avgScore;
+  // top candidates mini cards
+  const topEl=document.getElementById('topCandCards');
+  if(topEl){
+    const top=candidates.slice(0,5);
+    const statusColor={'Pending':'var(--text2)','Pass':'var(--green)','Reject':'var(--red)','Hold':'var(--yellow)','Offer':'var(--blue)'};
+    topEl.innerHTML=top.map(c=>`
+      <div style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;background:var(--bg3);cursor:pointer;transition:all .15s" onclick="showResumeModal(${c.idx})" onmouseover="this.style.background='rgba(51,112,255,.08)'" onmouseout="this.style.background='var(--bg3)'">
+        <div class="cand-avatar" style="width:32px;height:32px;font-size:12px">${c.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase()}</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-weight:700;font-size:12px;color:var(--text)">${esc(c.name)}</div>
+          <div style="font-size:11px;color:var(--text2)">${esc(c.role)}</div>
+        </div>
+        <span class="score-pill" style="font-size:11px">${c.fitScore.toFixed(1)}</span>
+        <span class="level-badge lvl-${c.level.toLowerCase()}">${c.level}</span>
+      </div>`).join('');
+  }
+  // always render funnel + top10
+  renderFunnelChart();
+  renderTop10Chart();
+  // on-demand charts: only update if already generated
+  if(chartCache['levelChart'])renderLevelChart();
+  if(chartCache['histChart'])renderHistChart();
+  if(chartCache['decisionChart'])renderHistoricalDecisionChart();
+  if(chartCache['roleDecisionChart'])renderRoleDecisionChart();
+  if(chartCache['skillCloud'])renderSkillCloud();
+  if(chartCache['networkChart'])renderNetworkChart();
+  if(chartCache['skillBarChart'])renderSkillBarChart();
+  if(chartCache['heatmapChart'])renderHeatmapChart();
+  updatePerfMonitor();
+}
+
+function renderFunnelChart(){
+  const el=document.getElementById('funnelChart');
+  if(!el)return;
+  const total=candidates.length;
+  const steps=[
+    {label:'Total Applicants',val:total,pct:100},
+    {label:'Initial Screen',val:Math.round(total*.65),pct:65},
+    {label:'Shortlisted',val:Math.round(total*.3),pct:30},
+    {label:'Interviewed',val:Math.round(total*.12),pct:12},
+    {label:'Accepted',val:candidates.filter(c=>c.decision.includes('accept')).length,pct:null}
+  ];
+  const w=el.offsetWidth||300;
+  el.innerHTML='';
+  const c=echarts.init(el,darkMode?'dark':null);
+  c.setOption({
+    backgroundColor:'transparent',
+    tooltip:{trigger:'item'},
+    series:[{
+      type:'funnel',left:'5%',width:'90%',
+      min:0,max:total,
+      data:steps.map((s,i)=>({value:s.val,name:s.label,
+        itemStyle:{color:['#6366f1','#3b82f6','#10b981','#f59e0b','#ef4444'][i]}})),
+      label:{show:true,position:'inside',formatter:'{b}: {c}'},
+      gap:4
+    }]
+  });
+  charts.funnel=c;
+}
+
+function renderLevelChart(){
+  const lvls=['S','A','B','C','D'];
+  const counts=lvls.map(l=>candidates.filter(c=>c.level===l).length);
+  const colors=['#0ea5e9','#6366f1','#f59e0b','#f97316','#ef4444'];
+  updateOrCreateBar('levelChart',lvls,counts,colors,{options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{color:'rgba(148,163,184,.1)'},ticks:{color:'#94a3b8'}},y:{grid:{color:'rgba(148,163,184,.1)'},ticks:{color:'#94a3b8'}}}}});
+}
+
+function renderHistChart(){
+  const bins=Array(10).fill(0);
+  candidates.forEach(c=>{const b=Math.min(9,Math.floor(c.fitScore/10));bins[b]++;});
+  const labels=Array.from({length:10},(_,i)=>`${i*10}-${i*10+9}`);
+  updateOrCreateBar('histChart',labels,bins,'rgba(99,102,241,.6)',{ds:{borderColor:'#6366f1',borderWidth:1},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{color:'rgba(148,163,184,.1)'},ticks:{color:'#94a3b8',font:{size:10}}},y:{grid:{color:'rgba(148,163,184,.1)'},ticks:{color:'#94a3b8'}}}}});
+}
+
+function renderTop10Chart(){
+  const el=document.getElementById('top10Chart');
+  if(!el)return;
+  const top=candidates.slice(0,10);
+  if(charts.top10){charts.top10.dispose();charts.top10=null;}
+  const c=echarts.init(el,darkMode?'dark':null);
+  c.setOption({
+    backgroundColor:'transparent',
+    tooltip:{trigger:'axis',axisPointer:{type:'shadow'}},
+    grid:{left:'25%',right:'5%',top:'3%',bottom:'5%'},
+    xAxis:{type:'value',max:100,axisLabel:{color:'#94a3b8'},splitLine:{lineStyle:{color:'rgba(148,163,184,.1)'}}},
+    yAxis:{type:'category',data:top.map(c=>c.name.length>14?c.name.slice(0,14)+'…':c.name).reverse(),axisLabel:{color:'#cbd5e1',fontSize:11}},
+    series:[{type:'bar',data:top.map(c=>({value:c.fitScore.toFixed(1),
+      itemStyle:{color:c.level==='S'?'#0ea5e9':c.level==='A'?'#6366f1':c.level==='B'?'#f59e0b':c.level==='C'?'#f97316':'#ef4444',borderRadius:3}})).reverse(),
+      label:{show:true,position:'right',formatter:'{c}',color:'#cbd5e1',fontSize:11}}]
+  });
+  charts.top10=c;
+}
+
+function renderSkillCloud(){
+  const freq={};
+  candidates.forEach(c=>c.skills.forEach(s=>freq[s]=(freq[s]||0)+1));
+  const sorted=Object.entries(freq).sort((a,b)=>b[1]-a[1]).slice(0,25);
+  const el=document.getElementById('skillCloud');
+  if(!el)return;
+  const max=sorted[0]?.[1]||1;
+  el.innerHTML=sorted.map(([s,n])=>{
+    const sz=12+Math.round((n/max)*16);
+    const op=0.4+((n/max)*.6);
+    return`<span style="font-size:${sz}px;opacity:${op}" title="${n} occurrences">${s}</span>`;
+  }).join('');
+}
+
+function renderNetworkChart(){
+  const el=document.getElementById('networkChart');
+  if(!el)return;
+  const MAX_SKILLS=30,MIN_FREQ=3;
+  const freq={};
+  candidates.forEach(c=>c.skills.forEach(s=>freq[s]=(freq[s]||0)+1));
+  const topSkills=Object.entries(freq).filter(([,n])=>n>=MIN_FREQ).sort((a,b)=>b[1]-a[1]).slice(0,MAX_SKILLS).map(([s])=>s);
+  // build co-occurrence only among topSkills
+  const co={};
+  candidates.forEach(c=>{
+    const sk=c.skills.filter(s=>topSkills.includes(s));
+    for(let i=0;i<sk.length;i++)for(let j=i+1;j<sk.length;j++){
+      const key=[sk[i],sk[j]].sort().join('|');
+      co[key]=(co[key]||0)+1;
+    }
+  });
+  const topPairs=Object.entries(co).sort((a,b)=>b[1]-a[1]).slice(0,20);
+  const nodes=new Set();topPairs.forEach(([k])=>k.split('|').forEach(s=>nodes.add(s)));
+  if(charts.network){charts.network.dispose();charts.network=null;}
+  const c=echarts.init(el,darkMode?'dark':null);
+  c.setOption({backgroundColor:'transparent',tooltip:{},series:[{type:'graph',layout:'force',
+    force:{repulsion:60,edgeLength:[20,60]},roam:true,
+    nodes:[...nodes].map(n=>({name:n,symbolSize:10+Math.round((freq[n]||1)/3),
+      itemStyle:{color:'#6366f1'},label:{show:true,color:'#cbd5e1',fontSize:10}})),
+    edges:topPairs.map(([k,v])=>({source:k.split('|')[0],target:k.split('|')[1],
+      lineStyle:{width:Math.max(1,Math.round(v/4)),color:'rgba(99,102,241,.35)'}}))
+  }]});
+  charts.network=c;
+}
+
+function renderSkillBarChart(){
+  const freq={};
+  candidates.forEach(c=>c.skills.forEach(s=>freq[s]=(freq[s]||0)+1));
+  const sorted=Object.entries(freq).sort((a,b)=>b[1]-a[1]).slice(0,12);
+  if(charts.skillBar&&charts.skillBar.data){
+    charts.skillBar.data.labels=sorted.map(x=>x[0]);
+    charts.skillBar.data.datasets[0].data=sorted.map(x=>x[1]);
+    charts.skillBar.update('none');return;
+  }
+  destroyChart('skillBarChart');
+  const ctx=document.getElementById('skillBarChart');if(!ctx)return;
+  charts.skillBar=new Chart(ctx,{type:'bar',data:{labels:sorted.map(x=>x[0]),datasets:[{data:sorted.map(x=>x[1]),backgroundColor:'rgba(99,102,241,.7)',borderColor:'#6366f1',borderWidth:1,borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{grid:{color:'rgba(148,163,184,.1)'},ticks:{color:'#94a3b8'}},y:{grid:{display:false},ticks:{color:'#94a3b8',font:{size:10}}}}}});
+}
+
+function renderHeatmapChart(){
+  const el=document.getElementById('heatmapChart');
+  if(!el)return;
+  const roles=[...new Set(candidates.map(c=>c.role))].slice(0,8);
+  const skills=SKILLS.slice(0,14);
+  const data=[];
+  roles.forEach((role,ri)=>{
+    const rc=candidates.filter(c=>c.role===role);
+    skills.forEach((sk,si)=>{
+      const cnt=rc.filter(c=>c.skills.includes(sk)).length;
+      data.push([si,ri,cnt||0]);
+    });
+  });
+  if(charts.heatmap){charts.heatmap.dispose();charts.heatmap=null;}
+  const c=echarts.init(el,darkMode?'dark':null);
+  c.setOption({
+    backgroundColor:'transparent',
+    tooltip:{formatter:p=>`${roles[p.value[1]]} × ${skills[p.value[0]]}: ${p.value[2]}`},
+    grid:{top:'5%',bottom:'15%',left:'18%',right:'5%'},
+    xAxis:{type:'category',data:skills,axisLabel:{rotate:35,color:'#94a3b8',fontSize:10}},
+    yAxis:{type:'category',data:roles,axisLabel:{color:'#94a3b8',fontSize:10}},
+    visualMap:{min:0,max:10,calculable:true,orient:'horizontal',
+      left:'center',bottom:0,inRange:{color:['#1e293b','#4338ca','#06b6d4']},
+      textStyle:{color:'#94a3b8',fontSize:10}},
+    series:[{type:'heatmap',data,label:{show:false}}]
+  });
+  charts.heatmap=c;
+}
+
+function renderHistoricalDecisionChart(){
+  const accept=candidates.filter(c=>c.historicalDecision.includes('accept')).length;
+  const reject=candidates.length-accept;
+  updateOrCreateDoughnut('decisionChart',['Historical: Accept','Historical: Reject'],[accept,reject],['rgba(16,185,129,.7)','rgba(239,68,68,.6)']);
+}
+
+function renderRoleDecisionChart(){
+  const roles=[...new Set(candidates.map(c=>c.role))].slice(0,8);
+  const accepts=roles.map(r=>candidates.filter(c=>c.role===r&&c.historicalDecision.includes('accept')).length);
+  const rejects=roles.map(r=>candidates.filter(c=>c.role===r&&!c.historicalDecision.includes('accept')).length);
+  destroyChart('roleDecisionChart');
+  const ctx=document.getElementById('roleDecisionChart');
+  if(!ctx)return;
+  charts.roleDecision=new Chart(ctx,{
+    type:'bar',
+    data:{labels:roles,
+      datasets:[
+        {label:'Hist. Accept',data:accepts,backgroundColor:'rgba(16,185,129,.6)',borderRadius:4},
+        {label:'Hist. Reject',data:rejects,backgroundColor:'rgba(239,68,68,.5)',borderRadius:4}
+      ]},
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{labels:{color:'#94a3b8'}}},
+      scales:{x:{stacked:true,grid:{display:false},ticks:{color:'#94a3b8',font:{size:9}}},
+              y:{stacked:true,grid:{color:'rgba(148,163,184,.1)'},ticks:{color:'#94a3b8'}}}
+    }
+  });
+}
+
+// ===================== CANDIDATES TABLE =====================
+function renderCandidateTable(){
+  const body=document.getElementById('candBody');
+  const start=(currentPage-1)*pageSize;
+  const page=filteredCandidates.slice(start,start+pageSize);
+  body.innerHTML=page.map(c=>{
+    const ct=c.contact||{};
+    const contactHtml=[
+      ct.email?`<a href="mailto:${esc(ct.email)}" style="color:var(--accent2)">📧 ${esc(ct.email)}</a>`:'',
+      ct.phone?`<span>📞 ${esc(ct.phone)}</span>`:'',
+      ct.linkedin?`<a href="https://${esc(ct.linkedin)}" target="_blank" style="color:var(--accent2)">🔗 LinkedIn</a>`:'',
+      ct.github?`<a href="https://${esc(ct.github)}" target="_blank" style="color:var(--accent2)">🐙 GitHub</a>`:'',
+    ].filter(Boolean).join('<br>');
+      const statusColor={'Pending':'var(--text2)','Pass':'var(--green)','Reject':'var(--red)','Hold':'var(--yellow)','Offer':'var(--blue)','Withdrawn':'#a78bfa','Onboarding':'var(--green)'};
+    return`
+    <tr>
+      <td><strong>#${c.rank}</strong></td>
+      <td><strong style="color:var(--text)">${esc(c.name)}</strong></td>
+      <td><span class="badge badge-blue">${esc(c.role)}</span></td>
+      <td>${c.skills.slice(0,3).map(s=>`<span class="skill-tag">${s}</span>`).join('')}${c.skills.length>3?`<span class="skill-tag">+${c.skills.length-3}</span>`:''}</td>
+      <td style="font-size:11px;line-height:1.8;min-width:140px">${contactHtml||'<span style="color:var(--text2)">N/A</span>'}</td>
+      <td>${c.exp.toFixed(1)} yrs</td>
+      <td>${c.edu.label}</td>
+      <td>
+        <strong>${c.fitScore.toFixed(1)}</strong>
+        <span class="score-bar"><span class="score-fill" style="width:${c.fitScore}%"></span></span>
+      </td>
+      <td><span class="level-badge lvl-${c.level.toLowerCase()}">${c.level}</span></td>
+      <td><span class="badge badge-blue" style="font-size:10px">${esc(c.pipeline.currentStage)}</span></td>
+      <td><span style="font-size:11px;font-weight:700;color:${statusColor[c.pipeline.status]||'var(--text2)'}">${c.pipeline.status}</span></td>
+      <td style="font-size:11px">${c.recommendation}</td>
+      <td><button class="resume-btn" onclick="showResumeModal(${c.idx})">📄 View</button></td>
+    </tr>`}).join('');
+  renderPagination('pagination',filteredCandidates.length,currentPage,pageSize,p=>{currentPage=p;renderCandidateTable();});
+}
+
+function filterCandidates(){
+  const q=(document.getElementById('candSearch')?.value||'').toLowerCase();
+  const lf=document.getElementById('levelFilter')?.value||'';
+  const rf=document.getElementById('roleFilter')?.value||'';
+  const df=document.getElementById('decisionFilter')?.value||'';
+  filteredCandidates=candidates.filter(c=>{
+    if(q&&!c.name.toLowerCase().includes(q)&&!c.role.toLowerCase().includes(q)&&!c.skills.some(s=>s.includes(q)))return false;
+    if(lf&&c.level!==lf)return false;
+    if(rf&&c.role!==rf)return false;
+    if(df&&c.pipeline.status!==df)return false;
+    return true;
+  });
+  currentPage=1;
+  renderCandidateTable();
+}
+
+function sortBy(field){
+  if(sortField===field)sortDir*=-1; else {sortField=field;sortDir=-1;}
+  filteredCandidates.sort((a,b)=>{
+    let av=a[field],bv=b[field];
+    if(typeof av==='string')return sortDir*av.localeCompare(bv);
+    return sortDir*(av-bv);
+  });
+  renderCandidateTable();
+}
+
+function populateRoleFilter(){
+  const sel=document.getElementById('roleFilter');
+  if(!sel)return;
+  const roles=[...new Set(candidates.map(c=>c.role))].sort();
+  sel.innerHTML='<option value="">All Roles</option>'+roles.map(r=>`<option value="${r}">${r}</option>`).join('');
+}
+
+function exportCSV(){
+  const headers='Rank,Name,Role,Skills,Experience,Education,SkillScore,ExpScore,EduScore,SemanticScore,FitScore,Level,Decision,Recommendation';
+  const rows=filteredCandidates.map(c=>[
+    c.rank,`"${c.name}"`,`"${c.role}"`,`"${c.skills.join(';')}"`,
+    c.exp.toFixed(1),c.edu.label,
+    c.skillScore.toFixed(1),c.expScore.toFixed(1),c.eduScore.toFixed(1),c.semScore.toFixed(1),
+    c.fitScore.toFixed(1),c.level,c.decision,`"${c.recommendation}"`
+  ].join(','));
+  const blob=new Blob([[headers,...rows].join('\n')],{type:'text/csv'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='ats_candidates.csv';a.click();
+}
+
+// ===================== FLOW DIAGRAM =====================
+function renderFlowDiagram(){
+  const el=document.getElementById('flowDiagram');
+  if(!el)return;
+  el.innerHTML=FLOW_NODES.map((n,i)=>`
+    <div class="flow-node" onclick="toggleFlowDetail('fd_${n.id}',this)">
+      <div class="fn-title">${n.icon} ${n.title}</div>
+      <div class="fn-sub">${n.sub}</div>
+    </div>
+    <div class="flow-detail" id="fd_${n.id}">
+      <strong>${n.title}</strong><br>${n.detail}
+    </div>
+    ${i<FLOW_NODES.length-1?'<div class="flow-arrow">↓</div>':''}
+  `).join('');
+}
+
+function toggleFlowDetail(id,node){
+  const el=document.getElementById(id);
+  if(!el)return;
+  const showing=el.classList.contains('show');
+  document.querySelectorAll('.flow-detail').forEach(e=>{e.classList.remove('show');});
+  document.querySelectorAll('.flow-node').forEach(e=>e.classList.remove('active'));
+  if(!showing){el.classList.add('show');node.classList.add('active');}
+}
+
+// ===================== CLEANING LOG =====================
+function renderCleaningLog(){
+  const s=window._cleanStats||{};
+  const el=document.getElementById('cleanLog');
+  if(!el)return;
+  el.innerHTML=`
+    <div class="log-item"><span class="log-key">📋 Original Records</span><span class="log-val">${s.orig||0}</span></div>
+    <div class="log-item"><span class="log-key">🗑️ Removed Empty</span><span class="log-val red">-${(s.orig||0)-(s.afterEmpty||0)}</span></div>
+    <div class="log-item"><span class="log-key">🔁 Removed Duplicates</span><span class="log-val red">-${(s.afterEmpty||0)-(s.afterDup||0)}</span></div>
+    <div class="log-item"><span class="log-key">✅ Retained Records</span><span class="log-val green">${s.final||0}</span></div>
+    ${window._legacyMigrated?`<div class="log-item" style="border:1px solid var(--yellow);border-radius:6px;padding:6px 8px;margin-top:8px;background:rgba(245,158,11,.08)"><span class="log-key" style="color:var(--yellow)">⚠️ Legacy CSV Migrated</span><span class="log-val" style="color:var(--yellow)">${window._legacyMigrated} rows</span></div><div style="font-size:10px;color:var(--yellow);margin-top:2px">Decision → Historical_Decision · Reason_for_decision → Decision_Reason</div>`:''}
+    <div style="margin-top:12px">
+      <div style="font-size:11px;color:var(--text2);margin-bottom:4px">Data Quality</div>
+      <div class="progress-bar"><div class="progress-fill" style="background:var(--green);width:${s.orig?Math.round(s.final/s.orig*100):0}%"></div></div>
+      <div style="font-size:11px;color:var(--green);margin-top:3px">${s.orig?Math.round(s.final/s.orig*100):0}% Clean Rate</div>
+    </div>
+  `;
+  // preview
+  const pv=document.getElementById('cleanPreview');
+  if(pv&&cleanData.length){
+    const sample=cleanData[0];
+    const orig=sample.Resume.slice(0,150);
+    const cleaned=cleanText(sample.Resume).slice(0,150);
+    pv.innerHTML=`
+      <div style="font-size:11px;color:var(--text2);margin-bottom:6px">Sample — Original:</div>
+      <div style="background:var(--bg3);border-radius:6px;padding:8px;font-size:11px;color:var(--text3);margin-bottom:10px;word-break:break-all">${esc(orig)}…</div>
+      <div style="font-size:11px;color:var(--green);margin-bottom:6px">↓ After Cleaning:</div>
+      <div style="background:var(--bg3);border-radius:6px;padding:8px;font-size:11px;color:var(--text3);word-break:break-all">${esc(cleaned)}…</div>
+    `;
+  }
+}
+
+// ===================== FEATURE TABLE =====================
+function renderFeatTable(){
+  populateRoleFilter();
+  const body=document.getElementById('featBody');
+  if(!body)return;
+  const start=(featPage-1)*featPageSize;
+  const page=candidates.slice(start,start+featPageSize);
+  body.innerHTML=page.map(c=>`
+    <tr>
+      <td><strong style="color:var(--text)">${esc(c.name)}</strong></td>
+      <td><span class="badge badge-blue">${esc(c.role)}</span></td>
+      <td>${c.skills.map(s=>`<span class="skill-tag">${s}</span>`).join('')||'—'}</td>
+      <td>${c.exp.toFixed(1)}</td>
+      <td>${c.edu.label}</td>
+      <td>${c.skillScore.toFixed(1)}</td>
+      <td>${c.expScore.toFixed(1)}</td>
+      <td>${c.eduScore.toFixed(1)}</td>
+      <td>${c.semScore.toFixed(1)}</td>
+    </tr>`).join('');
+  renderPagination('featPagination',candidates.length,featPage,featPageSize,p=>{featPage=p;renderFeatTable();});
+}
+
+// ===================== SETTINGS =====================
+function renderSettings(){
+  const el=document.getElementById('skillDictDisplay');
+  if(el)el.innerHTML=SKILLS.map(s=>`<span class="skill-tag">${s}</span>`).join('');
+  const re=document.getElementById('roleExpConfig');
+  if(re)re.innerHTML=Object.entries(roleExpReq).map(([r,v])=>`
+    <div style="background:var(--bg3);padding:8px 12px;border-radius:8px;min-width:160px">
+      <div style="font-size:11px;color:var(--text2)">${r}</div>
+      <input type="number" value="${v}" min="1" max="20" step="1" style="width:60px;background:var(--bg2);border:1px solid var(--border);border-radius:4px;color:var(--text);padding:2px 6px;font-size:12px;margin-top:4px"
+        onchange="roleExpReq['${r}']=parseInt(this.value)||1">
+      <span style="font-size:11px;color:var(--text2)"> yrs req</span>
+    </div>`).join('');
+}
+
+function updateWeight(id,val){
+  document.getElementById(id).textContent=val;
+}
+function addSkills(){
+  const inp=document.getElementById('skillDictInput');
+  if(!inp)return;
+  const news=inp.value.split(',').map(s=>s.trim().toLowerCase()).filter(Boolean);
+  news.forEach(s=>{if(!SKILLS.includes(s))SKILLS.push(s);});
+  inp.value='';
+  renderSettings();
+}
+
+// ===================== PAGINATION =====================
+function renderPagination(id,total,current,size,cb){
+  const el=document.getElementById(id);
+  if(!el)return;
+  const pages=Math.ceil(total/size);
+  if(pages<=1){el.innerHTML='';return;}
+  const range=[];
+  for(let i=Math.max(1,current-2);i<=Math.min(pages,current+2);i++)range.push(i);
+  el.innerHTML=`
+    <button class="page-btn" onclick="(${cb})(${Math.max(1,current-1)})" ${current===1?'disabled':''}>‹</button>
+    ${range.map(p=>`<button class="page-btn ${p===current?'active':''}" onclick="(${cb})(${p})">${p}</button>`).join('')}
+    <button class="page-btn" onclick="(${cb})(${Math.min(pages,current+1)})" ${current===pages?'disabled':''}>›</button>
+    <span style="font-size:11px;color:var(--text2);margin-left:4px">${total} total</span>
+  `;
+}
+
+// ===================== NAV =====================
+function showPage(id){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  const pg=document.getElementById('page-'+id);
+  if(pg)pg.classList.add('active');
+  event?.currentTarget?.classList.add('active');
+  const titles={dashboard:'📊 Dashboard',candidates:'👥 Candidate Ranking',logic:'🔀 Recruitment Logic',cleaning:'🧹 Data Cleaning',settings:'⚙️ Settings',pipeline:'📋 Recruitment Pipeline',interview:'🎤 Interview'};
+  document.getElementById('topbarTitle').textContent=titles[id]||id;
+  if(id==='pipeline'){renderKanban();updatePipelineStats();}
+  if(id==='interview'){renderSessionGrid();renderPool();renderEvalSessionSel();}
+  // resize echarts
+  setTimeout(()=>Object.values(charts).forEach(c=>{if(c&&c.resize)c.resize();}),100);
+}
+
+function switchDashTab(tab){
+  document.querySelectorAll('.inner-tab').forEach(t=>t.classList.remove('active'));
+  event?.currentTarget?.classList.add('active');
+  ['overview','skills','heatmap','history'].forEach(t=>{
+    const el=document.getElementById('dash-'+t);
+    if(el)el.style.display=t===tab?'block':'none';
+  });
+  setTimeout(()=>Object.values(charts).forEach(c=>{if(c&&c.resize)c.resize();}),100);
+}
+
+// ===================== THEME =====================
+function toggleTheme(){
+  darkMode=!darkMode;
+  document.documentElement.classList.toggle('light',!darkMode);
+  document.getElementById('themeIcon').textContent=darkMode?'☀️':'🌙';
+  document.querySelector('.theme-btn').querySelector('span:last-child').textContent=darkMode?'Light Mode':'Dark Mode';
+  // re-init echarts
+  ['funnelChart','networkChart','top10Chart','heatmapChart'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el&&echarts.getInstanceByDom(el)){echarts.getInstanceByDom(el).dispose();}
+  });
+  if(candidates.length){renderDashboard();}
+}
+
+// ===================== HELPERS =====================
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function destroyChart(id){if(charts[id]){charts[id].destroy();delete charts[id];}}
+function showLoading(show){document.getElementById('loading').style.display=show?'flex':'none';}
+function setLoadMsg(msg){document.getElementById('loadMsg').textContent=msg;}
+
+// ===================== INIT =====================
+window.onload=()=>{
+  setTimeout(()=>{
+    showLoading(false);
+    renderFlowDiagram();
+    initPerfMonitor();
+  },600);
+};
+window.onresize=()=>{
+  Object.values(charts).forEach(c=>{if(c&&c.resize)c.resize();});
+};
+</script>
+<!--
+==========================================================
+📁 PROJECT STRUCTURE
+==========================================================
+ATS_Recruitment_System.html   ← This file (all-in-one)
+resume_dataset.csv            ← Place in same folder
+                                 Required columns:
+                                 Role, Resume, Decision,
+                                 Reason_for_decision,
+                                 Job_Description
+
+==========================================================
+🧠 ALGORITHM NOTES
+==========================================================
+FitScore = 0.4×Skill + 0.3×Exp + 0.1×Edu + 0.2×Semantic
+
+SkillScore  : Matched skills / JD required skills × 100
+ExpScore    : Candidate years / Role avg req years × 100
+EduScore    : PhD=100, Master=90, Bachelor=80, College=60
+SemanticScore: TF-IDF vector cosine similarity × 300 (capped 100)
+
+Grading:
+  S ≥ 90  → Core Candidate / Fast Track
+  A ≥ 80  → Priority Interview
+  B ≥ 70  → Reserve Pool
+  C ≥ 60  → On Hold
+  D < 60  → Archive/Reject
+
+Cleaning Pipeline:
+  1. Remove fully blank rows
+  2. Deduplicate by resume text (first 200 chars)
+  3. Strip HTML, URLs, emails, phone numbers
+  4. Lowercase normalization
+  5. Remove special chars, normalize whitespace
+
+==========================================================
+▶️ RUN INSTRUCTIONS
+==========================================================
+1. Save as ATS_Recruitment_System.html
+2. Double-click to open in any modern browser
+3. Click "Sample Data" for instant demo, or
+   click "Load CSV" to upload resume_dataset.csv
+4. All processing is 100% client-side (no server needed)
+==========================================================
+-->
+</body>
+</html>

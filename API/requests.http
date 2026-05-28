@@ -1,0 +1,28 @@
+@baseUrl = http://127.0.0.1:8000/api
+
+### Health
+GET {{baseUrl}}/health
+
+### Upload files
+POST {{baseUrl}}/imports/upload
+Content-Type: multipart/form-data; boundary=boundary
+
+--boundary
+Content-Disposition: form-data; name="files"; filename="resume_dataset.csv"
+Content-Type: text/csv
+
+< ../resume_dataset.csv
+--boundary--
+
+### Files
+GET {{baseUrl}}/imports/files
+
+### Candidates
+GET {{baseUrl}}/candidates?page=1&page_size=25
+
+### Dashboard stats
+GET {{baseUrl}}/dashboard/stats
+
+### Generate dashboard charts
+POST {{baseUrl}}/dashboard/generate
+
