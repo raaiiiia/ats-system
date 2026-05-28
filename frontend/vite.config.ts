@@ -6,6 +6,9 @@ export default defineConfig(({ mode }) => {
 
   return {
     base: env.VITE_BASE_PATH || "/",
+    build: {
+      outDir: env.VITE_OUT_DIR || "dist"
+    },
     plugins: [react()],
     server: {
       host: "127.0.0.1",
