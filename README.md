@@ -2,6 +2,12 @@
 
 Enterprise ATS and interview management system with automated data import, ETL, resume parsing, candidate database, Kanban pipeline, interview scoring, and cached dashboard visualizations.
 
+## Live Demo
+
+Visit the deployed site:
+
+https://collarai.vercel.app
+
 ## Stack
 
 - Frontend: React, TypeScript, TailwindCSS, ECharts, Framer Motion
