@@ -10,3 +10,4 @@ backend/ats_platform.db
 __pycache__/
 *.pyc
 .DS_Store
+vite-dev.log

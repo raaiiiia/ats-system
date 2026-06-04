@@ -12,10 +12,9 @@ export default {
         soft: "0 10px 28px rgba(31, 66, 135, 0.08)"
       },
       borderRadius: {
-        app: "12px"
+        app: "8px"
       }
     }
   },
   plugins: []
 };
-

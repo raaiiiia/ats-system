@@ -1,34 +1,40 @@
 import { lazy, Suspense, useState } from "react";
-
 import { Shell } from "./components/Shell";
 
 const Candidates = lazy(() => import("./pages/Candidates").then((module) => ({ default: module.Candidates })));
 const Dashboard = lazy(() => import("./pages/Dashboard").then((module) => ({ default: module.Dashboard })));
-const DataCleaning = lazy(() => import("./pages/DataCleaning").then((module) => ({ default: module.DataCleaning })));
 const DataImport = lazy(() => import("./pages/DataImport").then((module) => ({ default: module.DataImport })));
+const Evaluation = lazy(() => import("./pages/Evaluation").then((module) => ({ default: module.Evaluation })));
 const Interviews = lazy(() => import("./pages/Interviews").then((module) => ({ default: module.Interviews })));
 const Pipeline = lazy(() => import("./pages/Pipeline").then((module) => ({ default: module.Pipeline })));
 const Settings = lazy(() => import("./pages/Settings").then((module) => ({ default: module.Settings })));
+const Workflow = lazy(() => import("./pages/Workflow").then((module) => ({ default: module.Workflow })));
+
+function normalizePage(page: string) {
+  return page === "Data Cleaning" ? "Data Import" : page;
+}
 
 export default function App() {
-  const [page, setPage] = useState(() => localStorage.getItem("ats-page") || "Dashboard");
+  const [page, setPage] = useState(() => normalizePage(localStorage.getItem("ats-page") || "Workflow"));
   const [refreshToken, setRefreshToken] = useState(0);
 
-  function navigate(next: string) {
-    localStorage.setItem("ats-page", next);
-    setPage(next);
+  function navigate(nextPage: string) {
+    const normalizedPage = normalizePage(nextPage);
+    localStorage.setItem("ats-page", normalizedPage);
+    setPage(normalizedPage);
   }
 
   return (
     <Shell page={page} setPage={navigate}>
       <Suspense fallback={<div className="rounded-app bg-white p-8 shadow-soft">工作区加载中...</div>}>
+        {page === "Workflow" && <Workflow setPage={navigate} />}
         {page === "Dashboard" && <Dashboard refreshToken={refreshToken} />}
         {page === "Data Import" && <DataImport refreshToken={refreshToken} onChanged={() => setRefreshToken((x) => x + 1)} />}
-        {page === "Data Cleaning" && <DataCleaning onProcessed={() => setRefreshToken((x) => x + 1)} />}
         {page === "Candidates" && <Candidates refreshToken={refreshToken} setPage={navigate} />}
         {page === "ATS Pipeline" && <Pipeline />}
-        {page === "Interviews" && <Interviews />}
-        {page === "Settings" && <Settings />}
+        {page === "Interviews" && <Interviews setPage={navigate} />}
+        {page === "Evaluation" && <Evaluation />}
+        {page === "Settings" && <Settings setPage={navigate} />}
       </Suspense>
     </Shell>
   );
