@@ -3,12 +3,11 @@ import { motion } from "framer-motion";
 import type { ReactNode } from "react";
 
 const items = [
-  ["Workflow", "招聘工作台", BriefcaseBusiness],
   ["Candidates", "候选人库", UsersRound],
   ["Interviews", "面试中心", CalendarDays],
   ["Evaluation", "面试评价", ClipboardCheck],
   ["Dashboard", "数据看板", BarChart3],
-  ["Settings", "设置", Settings]
+  ["Settings", "设置", Settings],
 ] as const;
 
 const tools = [["Data Import", "导入清洗", Database]] as const;

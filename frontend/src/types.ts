@@ -77,6 +77,7 @@ export type CandidateParsedData = {
   certificates?: string[];
   notes?: Array<{ date: string; text: string }>;
   score_breakdown?: Record<string, unknown>;
+  score_job_requirement?: string;
 };
 
 export type CandidateDetail = {
@@ -124,6 +125,7 @@ export type ResumeScoreWeights = {
 
 export type ResumeScoreConfig = {
   weights: ResumeScoreWeights;
+  role_requirements: Record<string, string>;
   logic: Array<{ key: keyof ResumeScoreWeights; label: string; weight: number; description: string }>;
   updated?: number;
 };

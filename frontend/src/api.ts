@@ -67,8 +67,12 @@ export const api = {
   scoreConfig() {
     return request<ResumeScoreConfig>("/api/candidates/score-config");
   },
-  updateScoreConfig(weights: ResumeScoreWeights) {
-    return request<ResumeScoreConfig>("/api/candidates/score-config", { method: "PUT", headers: jsonHeaders, body: JSON.stringify({ weights }) });
+  updateScoreConfig(weights: ResumeScoreWeights, roleRequirements: Record<string, string> = {}) {
+    return request<ResumeScoreConfig>("/api/candidates/score-config", {
+      method: "PUT",
+      headers: jsonHeaders,
+      body: JSON.stringify({ weights, role_requirements: roleRequirements }),
+    });
   },
   pipeline() {
     return request<PipelineColumn[]>("/api/pipeline");

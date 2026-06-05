@@ -8,14 +8,14 @@ const Evaluation = lazy(() => import("./pages/Evaluation").then((module) => ({ d
 const Interviews = lazy(() => import("./pages/Interviews").then((module) => ({ default: module.Interviews })));
 const Pipeline = lazy(() => import("./pages/Pipeline").then((module) => ({ default: module.Pipeline })));
 const Settings = lazy(() => import("./pages/Settings").then((module) => ({ default: module.Settings })));
-const Workflow = lazy(() => import("./pages/Workflow").then((module) => ({ default: module.Workflow })));
 
 function normalizePage(page: string) {
+  if (page === "Workflow") return "Dashboard";
   return page === "Data Cleaning" ? "Data Import" : page;
 }
 
 export default function App() {
-  const [page, setPage] = useState(() => normalizePage(localStorage.getItem("ats-page") || "Workflow"));
+  const [page, setPage] = useState(() => normalizePage(localStorage.getItem("ats-page") || "Dashboard"));
   const [refreshToken, setRefreshToken] = useState(0);
 
   function navigate(nextPage: string) {
@@ -27,7 +27,6 @@ export default function App() {
   return (
     <Shell page={page} setPage={navigate}>
       <Suspense fallback={<div className="rounded-app bg-white p-8 shadow-soft">工作区加载中...</div>}>
-        {page === "Workflow" && <Workflow setPage={navigate} />}
         {page === "Dashboard" && <Dashboard refreshToken={refreshToken} />}
         {page === "Data Import" && <DataImport refreshToken={refreshToken} onChanged={() => setRefreshToken((x) => x + 1)} />}
         {page === "Candidates" && <Candidates refreshToken={refreshToken} setPage={navigate} />}
