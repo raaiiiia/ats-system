@@ -130,16 +130,16 @@ export function Evaluation() {
   }
 
   return (
-    <>
+    <div className="flex h-full min-h-0 flex-col">
       <PageHeader title="面试评价" subtitle="面试场次结束后，在这里记录评分、面试结论，并完成拟录用或入职确认。" />
 
-      <div className="grid gap-5 xl:grid-cols-[300px_320px_minmax(0,1fr)]">
-        <Card>
+      <div className="grid min-h-0 flex-1 gap-4 xl:grid-cols-[300px_320px_minmax(0,1fr)]">
+        <Card className="flex min-h-0 flex-col">
           <div className="mb-4 flex items-center justify-between gap-3">
             <div className="font-semibold">选择场次</div>
             <Badge tone="slate">{sessions.length}</Badge>
           </div>
-          <div className="space-y-2">
+          <div className="min-h-0 flex-1 space-y-2 overflow-y-auto pr-1 thin-scrollbar">
             {sessions.map((session) => (
               <button key={session.id} onClick={() => setSelectedId(session.id)} className={`w-full rounded-app border p-3 text-left transition ${selectedId === session.id ? "border-feishu bg-blue-50" : "border-blue-100 hover:border-feishu"}`}>
                 <div className="font-medium text-ink">{session.title}</div>
@@ -151,12 +151,12 @@ export function Evaluation() {
           </div>
         </Card>
 
-        <Card>
+        <Card className="flex min-h-0 flex-col">
           <div className="mb-4">
             <div className="font-semibold">评价队列</div>
             <div className="mt-1 text-sm text-slate-500">{selectedSession ? `${completedCount}/${detail.length} 已评分` : "先选择场次"}</div>
           </div>
-          <div className="space-y-2">
+          <div className="min-h-0 flex-1 space-y-2 overflow-y-auto pr-1 thin-scrollbar">
             {detail.map(({ candidate, score }) => (
               <button key={candidate.id} onClick={() => setSelectedCandidateId(candidate.id)} className={`w-full rounded-app border p-3 text-left transition ${selectedCandidateId === candidate.id ? "border-feishu bg-blue-50" : "border-blue-100 bg-white hover:border-feishu"}`}>
                 <div className="flex items-start justify-between gap-2">
@@ -173,8 +173,8 @@ export function Evaluation() {
           </div>
         </Card>
 
-        <div className="space-y-5">
-          <Card>
+        <div className="flex min-h-0 flex-col gap-4">
+          <Card className="shrink-0">
             <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
               <div>
                 <div className="font-semibold">评分表</div>
@@ -214,21 +214,21 @@ export function Evaluation() {
                 </div>
               </div>
             ) : (
-              <div className="grid h-64 place-items-center rounded-app bg-slate-50 text-slate-500">暂无可评价候选人</div>
+              <div className="grid h-48 place-items-center rounded-app bg-slate-50 text-slate-500">暂无可评价候选人</div>
             )}
           </Card>
 
-          <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_320px]">
-            <Card>
+          <div className="grid min-h-0 flex-1 gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
+            <Card className="flex min-h-0 flex-col">
               <div className="mb-3 flex items-center gap-2 font-semibold">
                 <FileText size={17} className="text-feishu" /> 面试参考
               </div>
-              <div className="max-h-72 overflow-auto whitespace-pre-wrap rounded-app bg-slate-50 p-4 text-sm leading-6 text-slate-600">
+              <div className="min-h-0 flex-1 overflow-auto whitespace-pre-wrap rounded-app bg-slate-50 p-4 text-sm leading-6 text-slate-600 thin-scrollbar">
                 {selectedCandidate?.candidate.resume || "暂无候选人简历"}
               </div>
             </Card>
 
-            <Card className="space-y-4">
+            <Card className="space-y-4 overflow-hidden">
               <div>
                 <div className="flex items-center gap-2 text-sm font-semibold text-ink">
                   <ClipboardCheck size={17} className="text-feishu" /> 最终处理
@@ -251,6 +251,6 @@ export function Evaluation() {
           </div>
         </div>
       </div>
-    </>
+    </div>
   );
 }

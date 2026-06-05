@@ -8,8 +8,19 @@
   font-family: "Segoe UI", "Microsoft YaHei", sans-serif;
 }
 
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
 body {
   margin: 0;
+  overflow: hidden;
 }
 
 button,
@@ -28,4 +39,3 @@ textarea {
   background: #d7e2ff;
   border-radius: 999px;
 }
-

@@ -14,7 +14,7 @@ const tools = [["Data Import", "导入清洗", Database]] as const;
 
 export function Shell({ page, setPage, children }: { page: string; setPage: (page: string) => void; children: ReactNode }) {
   return (
-    <div className="min-h-screen bg-page text-ink">
+    <div className="h-screen overflow-hidden bg-page text-ink">
       <aside className="sticky top-0 z-40 border-b border-blue-100 bg-white px-4 py-4 shadow-soft lg:fixed lg:left-0 lg:top-0 lg:h-full lg:w-64 lg:border-b-0 lg:border-r lg:py-5">
         <div className="mb-4 flex items-center gap-3 px-2 lg:mb-8">
           <div className="grid h-10 w-10 place-items-center rounded-app bg-feishu text-white">
@@ -62,8 +62,8 @@ export function Shell({ page, setPage, children }: { page: string; setPage: (pag
           <span className="break-all">raaiiiia1@gmail.com</span>
         </a>
       </aside>
-      <main className="min-h-screen p-4 lg:ml-64 lg:p-6">
-        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }} key={page}>
+      <main className="h-[calc(100vh-88px)] overflow-hidden p-4 lg:ml-64 lg:h-screen lg:p-6">
+        <motion.div className="h-full min-h-0" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }} key={page}>
           {children}
         </motion.div>
       </main>

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Download, ExternalLink, FileText, PlusCircle, Route, X } from "lucide-react";
 
 import { api } from "../api";
@@ -23,7 +23,6 @@ const stageLabels: Record<string, string> = {
 const stages = Object.keys(stageLabels);
 const cellClass = "px-3 py-4 align-middle leading-5 text-slate-700";
 const wrapClass = "whitespace-normal break-words";
-const tableMinWidth = 1440;
 const scoreKeys: Array<keyof ResumeScoreWeights> = ["text_match", "skills", "experience", "education"];
 const defaultWeights: ResumeScoreWeights = { text_match: 45, skills: 25, experience: 20, education: 10 };
 const inlineRolePattern = /\s*(?:申请岗位|应聘岗位|目标岗位|岗位|职位|Applied Role|Role|Position|Job Title)\s*[:：]\s*(.+)$/i;
@@ -142,8 +141,6 @@ function attachmentIsPdf(detail: CandidateDetail | null) {
 }
 
 export function Candidates({ refreshToken, setPage: navigate }: { refreshToken: number; setPage?: (page: string) => void }) {
-  const topScrollRef = useRef<HTMLDivElement | null>(null);
-  const tableScrollRef = useRef<HTMLDivElement | null>(null);
   const [items, setItems] = useState<Candidate[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -239,18 +236,6 @@ export function Candidates({ refreshToken, setPage: navigate }: { refreshToken: 
     setDraftWeights((current) => ({ ...current, [key]: Number(value) || 0 }));
   }
 
-  function syncCandidateScroll(source: "top" | "table") {
-    const top = topScrollRef.current;
-    const table = tableScrollRef.current;
-    if (!top || !table) return;
-    if (source === "top" && table.scrollLeft !== top.scrollLeft) {
-      table.scrollLeft = top.scrollLeft;
-    }
-    if (source === "table" && top.scrollLeft !== table.scrollLeft) {
-      top.scrollLeft = table.scrollLeft;
-    }
-  }
-
   async function openDetail(candidate: Candidate) {
     setDetailLoading(true);
     setResumeOpen(false);
@@ -300,13 +285,13 @@ export function Candidates({ refreshToken, setPage: navigate }: { refreshToken: 
   const experience = drawerCandidate ? candidateExperience(drawerCandidate) : ["无"];
 
   return (
-    <>
-      <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
+    <div className="flex h-full min-h-0 flex-col">
+      <div className="mb-4 flex shrink-0 flex-wrap items-end justify-between gap-4">
         <PageHeader title="候选人数据库" subtitle="数据清洗后仅展示姓名、岗位、联系方式、学历、技能、简历分数、标签和状态。" />
         <Button onClick={() => setShowConfig(true)}>评分配比</Button>
       </div>
 
-      <Card className="mb-5">
+      <Card className="mb-4 shrink-0 p-4">
         <div className="flex flex-wrap items-center gap-3">
           <input
             value={search}
@@ -315,7 +300,7 @@ export function Candidates({ refreshToken, setPage: navigate }: { refreshToken: 
               setPage(1);
             }}
             placeholder="搜索姓名、邮箱、岗位、简历全文..."
-            className="min-w-72 flex-1 rounded-app border border-blue-100 px-3 py-2"
+            className="min-w-0 flex-1 rounded-app border border-blue-100 px-3 py-2"
           />
           <select
             value={status}
@@ -334,12 +319,9 @@ export function Candidates({ refreshToken, setPage: navigate }: { refreshToken: 
         </div>
       </Card>
 
-      <Card>
-        <div ref={topScrollRef} onScroll={() => syncCandidateScroll("top")} className="mb-2 overflow-x-auto rounded-app border border-blue-50 bg-slate-50/80">
-          <div style={{ width: tableMinWidth, height: 1 }} />
-        </div>
-        <div ref={tableScrollRef} onScroll={() => syncCandidateScroll("table")} className="overflow-x-hidden">
-          <table className="table-fixed text-left text-sm" style={{ minWidth: tableMinWidth }}>
+      <Card className="flex min-h-0 flex-1 flex-col overflow-hidden p-4">
+        <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden thin-scrollbar">
+          <table className="w-full table-fixed text-left text-sm">
             <colgroup>
               <col className="w-[10%]" />
               <col className="w-[12%]" />
@@ -399,7 +381,7 @@ export function Candidates({ refreshToken, setPage: navigate }: { refreshToken: 
             </tbody>
           </table>
         </div>
-        <div className="mt-4 flex items-center justify-between text-sm text-slate-500">
+        <div className="mt-4 flex shrink-0 items-center justify-between text-sm text-slate-500">
           <span>共 {total} 条</span>
           <div className="flex gap-2">
             <Button disabled={page <= 1} onClick={() => setPage((value) => Math.max(1, value - 1))} className="px-3 py-1.5">上一页</Button>
@@ -563,6 +545,6 @@ export function Candidates({ refreshToken, setPage: navigate }: { refreshToken: 
           </aside>
         </div>
       )}
-    </>
+    </div>
   );
 }

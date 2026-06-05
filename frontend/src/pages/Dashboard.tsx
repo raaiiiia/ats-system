@@ -26,16 +26,16 @@ export function Dashboard({ refreshToken }: { refreshToken: number }) {
   }, [refreshToken]);
 
   return (
-    <>
+    <div className="flex h-full min-h-0 flex-col">
       <PageHeader title="仪表盘" subtitle="展示招聘运营核心指标；图表在点击生成后计算并缓存。" />
-      <div className="mb-6 grid grid-cols-4 gap-5">
+      <div className="mb-4 grid shrink-0 grid-cols-4 gap-4">
         <Stat label="候选人" value={stats.candidates} />
         <Stat label="待面试" value={stats.pendingInterviews} />
         <Stat label="Offer" value={stats.offers} />
         <Stat label="即将开始场次" value={stats.upcomingSessions} />
       </div>
       {!charts.generated ? (
-        <Card className="grid h-96 place-items-center text-center">
+        <Card className="grid min-h-0 flex-1 place-items-center text-center">
           <div>
             <div className="text-lg font-semibold">可视化尚未生成</div>
             <div className="mt-2 text-sm text-slate-500">为避免页面加载时执行高成本计算，图表会在需要时手动生成。</div>
@@ -43,14 +43,14 @@ export function Dashboard({ refreshToken }: { refreshToken: number }) {
           </div>
         </Card>
       ) : (
-        <div className="grid grid-cols-2 gap-5">
-          <Card><ReactECharts option={funnelOption(charts.funnel ?? [])} style={{ height: 320 }} /></Card>
-          <Card><ReactECharts option={levelOption(charts.levels ?? [])} style={{ height: 320 }} /></Card>
-          <Card><ReactECharts option={heatOption(charts.heatmap)} style={{ height: 360 }} /></Card>
-          <Card><ReactECharts option={networkOption(charts.skillNetwork)} style={{ height: 360 }} /></Card>
+        <div className="grid min-h-0 flex-1 grid-cols-2 grid-rows-2 gap-4">
+          <Card className="min-h-0 p-3"><ReactECharts option={funnelOption(charts.funnel ?? [])} style={{ height: "100%" }} /></Card>
+          <Card className="min-h-0 p-3"><ReactECharts option={levelOption(charts.levels ?? [])} style={{ height: "100%" }} /></Card>
+          <Card className="min-h-0 p-3"><ReactECharts option={heatOption(charts.heatmap)} style={{ height: "100%" }} /></Card>
+          <Card className="min-h-0 p-3"><ReactECharts option={networkOption(charts.skillNetwork)} style={{ height: "100%" }} /></Card>
         </div>
       )}
-    </>
+    </div>
   );
 }
 

@@ -44,9 +44,9 @@ export function Pipeline() {
   }
 
   return (
-    <>
+    <div className="flex h-full min-h-0 flex-col">
       <PageHeader title="招聘流程看板" subtitle="通过拖拽管理候选人在简历筛选、面试、Offer 和拒绝阶段之间的流转。" />
-      <Card className="mb-5">
+      <Card className="mb-4 shrink-0 p-4">
         <div className="flex flex-col gap-3 sm:flex-row">
           <input
             value={stageName}
@@ -57,11 +57,11 @@ export function Pipeline() {
           <Button onClick={() => void addStage()}>新增阶段</Button>
         </div>
       </Card>
-      <div className="grid auto-cols-[280px] grid-flow-col gap-4 overflow-x-auto pb-4">
+      <div className="grid min-h-0 flex-1 grid-cols-1 gap-4 overflow-hidden md:grid-cols-3 xl:grid-cols-5">
         {columns.map((column) => (
           <Card
             key={column.id}
-            className="min-h-[560px]"
+            className="flex min-h-0 flex-col p-4"
             onDragOver={(event) => event.preventDefault()}
             onDrop={(event) => void dropCandidate(event.dataTransfer.getData("candidate-id"), column.name)}
           >
@@ -69,7 +69,7 @@ export function Pipeline() {
               <div className="min-w-0 break-words font-semibold">{labelStage(column.name)}</div>
               <Badge tone="slate">{column.candidates.length}</Badge>
             </div>
-            <div className="space-y-3">
+            <div className="min-h-0 flex-1 space-y-3 overflow-y-auto pr-1 thin-scrollbar">
               {column.candidates.map((candidate) => (
                 <div
                   key={candidate.id}
@@ -89,6 +89,6 @@ export function Pipeline() {
           </Card>
         ))}
       </div>
-    </>
+    </div>
   );
 }

@@ -101,7 +101,7 @@ export function Interviews({ setPage }: { setPage?: (page: string) => void }) {
   }
 
   return (
-    <>
+    <div className="flex h-full min-h-0 flex-col">
       <PageHeader
         title="面试中心"
         subtitle="创建面试场次，将候选人加入具体场次，并使用填写制记录面试表现。"
@@ -112,7 +112,7 @@ export function Interviews({ setPage }: { setPage?: (page: string) => void }) {
         }
       />
 
-      <div className="mb-4 grid gap-4 xl:grid-cols-[300px_minmax(0,1fr)]">
+      <div className="mb-4 grid shrink-0 gap-4 xl:grid-cols-[300px_minmax(0,1fr)]">
         <Card className="p-4">
           <div className="mb-3 flex items-center gap-2 text-sm font-semibold">
             <Plus size={16} className="text-feishu" /> 新增面试场次
@@ -148,7 +148,7 @@ export function Interviews({ setPage }: { setPage?: (page: string) => void }) {
           </div>
         </Card>
 
-        <Card className="flex min-h-[250px] flex-col p-4">
+        <Card className="flex min-h-0 flex-col p-4">
           <div className="mb-3 flex items-center justify-between gap-3">
             <div className="text-sm font-semibold">面试场次</div>
             <Badge tone="slate">{sessions.length} 个场次</Badge>
@@ -174,9 +174,9 @@ export function Interviews({ setPage }: { setPage?: (page: string) => void }) {
       </div>
 
       {!selectedId ? (
-        <Card className="grid min-h-[calc(100vh-360px)] place-items-center text-sm text-slate-500">请选择或创建一个面试场次</Card>
+        <Card className="grid min-h-0 flex-1 place-items-center text-sm text-slate-500">请选择或创建一个面试场次</Card>
       ) : (
-        <div className="grid min-h-[calc(100vh-390px)] gap-4 xl:grid-cols-[280px_minmax(0,1.45fr)_280px]">
+        <div className="grid min-h-0 flex-1 gap-4 xl:grid-cols-[280px_minmax(0,1.45fr)_280px]">
           <Card className="flex min-h-0 flex-col p-4">
             <div className="mb-3 flex items-center gap-2 text-sm font-semibold">
               <UserPlus size={16} className="text-feishu" /> 参会候选人
@@ -215,7 +215,7 @@ export function Interviews({ setPage }: { setPage?: (page: string) => void }) {
             </div>
           </Card>
 
-          <Card className="flex min-h-[520px] flex-col p-4">
+          <Card className="flex min-h-0 flex-col p-4">
             <div className="mb-3 flex items-center justify-between gap-3">
               <div className="min-w-0">
                 <div className="text-sm font-semibold">候选人简历</div>
@@ -254,6 +254,6 @@ export function Interviews({ setPage }: { setPage?: (page: string) => void }) {
           </Card>
         </div>
       )}
-    </>
+    </div>
   );
 }

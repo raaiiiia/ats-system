@@ -47,7 +47,7 @@ export function Settings({ setPage }: { setPage?: (page: string) => void }) {
   }, []);
 
   return (
-    <div className="space-y-4">
+    <div className="flex h-full min-h-0 flex-col">
       <PageHeader
         title="设置与工具"
         subtitle="把低频调试、导入检查和评分权重集中在这里，主工作台只保留 HR 当前要操作的信息。"
@@ -58,8 +58,8 @@ export function Settings({ setPage }: { setPage?: (page: string) => void }) {
         }
       />
 
-      <div className="grid gap-4 lg:grid-cols-[360px_minmax(0,1fr)]">
-        <Card className="space-y-4">
+      <div className="grid min-h-0 flex-1 gap-4 lg:grid-cols-[360px_minmax(0,1fr)]">
+        <Card className="space-y-4 overflow-hidden">
           <div className="flex items-center justify-between gap-3">
             <div>
               <div className="flex items-center gap-2 text-sm font-semibold text-ink">
@@ -100,7 +100,7 @@ export function Settings({ setPage }: { setPage?: (page: string) => void }) {
           </div>
         </Card>
 
-        <Card className="space-y-4">
+        <Card className="flex min-h-0 flex-col space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <div className="flex items-center gap-2 text-sm font-semibold text-ink">
@@ -113,7 +113,7 @@ export function Settings({ setPage }: { setPage?: (page: string) => void }) {
             </Button>
           </div>
 
-          <div className="space-y-3">
+          <div className="min-h-0 flex-1 space-y-3 overflow-y-auto pr-1 thin-scrollbar">
             {debugItems.map((item) => (
               <details key={item.file.id} className="rounded-app border border-blue-100 bg-white p-3">
                 <summary className="cursor-pointer list-none">
@@ -128,13 +128,13 @@ export function Settings({ setPage }: { setPage?: (page: string) => void }) {
                 <div className="mt-3 grid gap-3 lg:grid-cols-2">
                   <div>
                     <div className="mb-2 text-xs font-semibold text-slate-500">解析字段</div>
-                    <pre className="max-h-72 overflow-auto rounded-app bg-slate-950 p-3 text-xs text-slate-100">
+                    <pre className="max-h-56 overflow-auto rounded-app bg-slate-950 p-3 text-xs text-slate-100 thin-scrollbar">
                       {JSON.stringify(item.parsedData, null, 2)}
                     </pre>
                   </div>
                   <div>
                     <div className="mb-2 text-xs font-semibold text-slate-500">原始文本</div>
-                    <pre className="max-h-72 overflow-auto whitespace-pre-wrap rounded-app bg-slate-50 p-3 text-xs leading-5 text-slate-700">
+                    <pre className="max-h-56 overflow-auto whitespace-pre-wrap rounded-app bg-slate-50 p-3 text-xs leading-5 text-slate-700 thin-scrollbar">
                       {item.rawResume || "暂无原始文本"}
                     </pre>
                   </div>

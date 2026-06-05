@@ -108,12 +108,12 @@ export function DataImport({ refreshToken, onChanged }: { refreshToken: number; 
   }
 
   return (
-    <>
+    <div className="flex h-full min-h-0 flex-col">
       <PageHeader title="数据导入与清洗" subtitle="上传原始文件、确认字段映射，并在同一工作台完成 ETL 清洗。" />
 
-      <div className="grid min-h-[calc(100vh-150px)] gap-4 xl:grid-cols-[minmax(0,1.45fr)_minmax(300px,0.75fr)]">
+      <div className="grid min-h-0 flex-1 gap-4 xl:grid-cols-[minmax(0,1.45fr)_minmax(300px,0.75fr)]">
         <div className="flex min-h-0 flex-col gap-4">
-          <Card className="p-4">
+          <Card className="shrink-0 p-4">
             <label
               onDragOver={(event) => event.preventDefault()}
               onDrop={(event) => {
@@ -129,13 +129,13 @@ export function DataImport({ refreshToken, onChanged }: { refreshToken: number; 
             </label>
           </Card>
 
-          <Card className="flex min-h-[420px] flex-1 flex-col p-4">
+          <Card className="flex min-h-0 flex-1 flex-col p-4">
             <div className="mb-3 flex items-center justify-between">
               <div className="text-sm font-semibold">已上传文件</div>
               <Badge tone="slate">{files.length} 个文件</Badge>
             </div>
-            <div className="min-h-0 flex-1 overflow-x-auto thin-scrollbar">
-              <table className="w-full min-w-[920px] table-fixed text-left text-sm">
+            <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden thin-scrollbar">
+              <table className="w-full table-fixed text-left text-sm">
                 <colgroup>
                   <col className="w-[30%]" />
                   <col className="w-[9%]" />
@@ -189,7 +189,7 @@ export function DataImport({ refreshToken, onChanged }: { refreshToken: number; 
                 </tbody>
               </table>
               {!files.length && (
-                <div className="grid h-full min-h-[300px] place-items-center rounded-app border border-dashed border-blue-100 bg-slate-50/70 text-sm text-slate-500">
+                <div className="grid h-full min-h-0 place-items-center rounded-app border border-dashed border-blue-100 bg-slate-50/70 text-sm text-slate-500">
                   上传文件后会在这里显示字段映射和处理状态
                 </div>
               )}
@@ -197,7 +197,7 @@ export function DataImport({ refreshToken, onChanged }: { refreshToken: number; 
           </Card>
         </div>
 
-        <Card className="flex min-h-[520px] flex-col p-4">
+        <Card className="flex min-h-0 flex-col p-4">
           <div className="mb-3 flex items-start justify-between gap-3">
             <div>
               <div className="text-sm font-semibold">数据清洗</div>
@@ -314,6 +314,6 @@ export function DataImport({ refreshToken, onChanged }: { refreshToken: number; 
           </Card>
         </div>
       )}
-    </>
+    </div>
   );
 }
